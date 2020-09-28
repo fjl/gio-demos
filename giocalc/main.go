@@ -79,8 +79,6 @@ func (ui *calcUI) special(name string, fn func()) *button {
 
 // Layout draws the UI.
 func (ui *calcUI) Layout(gtx layout.Context) layout.Dimensions {
-	// Draw the background.
-	fill(gtx.Ops, gtx.Constraints.Max, backgroundColor)
 
 	// Draw the result and buttons.
 	inset := layout.UniformInset(controlInset)
@@ -205,7 +203,14 @@ func loop(w *app.Window) error {
 			return e.Err
 		case system.FrameEvent:
 			gtx := layout.NewContext(&ops, e)
-			ui.Layout(gtx)
+			fill(gtx.Ops, gtx.Constraints.Max, backgroundColor)
+			inset := layout.Inset{
+				Top:    e.Insets.Top,
+				Bottom: e.Insets.Bottom,
+				Left:   e.Insets.Left,
+				Right:  e.Insets.Right,
+			}
+			inset.Layout(gtx, ui.Layout)
 			e.Frame(gtx.Ops)
 		case key.Event:
 			switch {
