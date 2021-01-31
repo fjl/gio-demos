@@ -43,6 +43,7 @@ func newTodoUI(theme *todoTheme) *todoUI {
 	ui.todos.add("foo")
 	ui.todos.add("bar")
 	ui.todos.items[0].done.Value = true
+	ui.mainInput.Focus()
 	return ui
 }
 
