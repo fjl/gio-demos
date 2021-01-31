@@ -5,6 +5,7 @@ import (
 	"image"
 	"log"
 	"os"
+	"strings"
 
 	"gioui.org/app"
 	"gioui.org/font/gofont"
@@ -53,7 +54,10 @@ func (ui *todoUI) Layout(gtx layout.Context) layout.Dimensions {
 	for _, e := range ui.mainInput.Events() {
 		switch e := e.(type) {
 		case widget.SubmitEvent:
-			ui.submit(e.Text)
+			newItem := strings.TrimSpace(e.Text)
+			if newItem != "" {
+				ui.submit(newItem)
+			}
 		}
 	}
 	// Process clear.
