@@ -3,7 +3,6 @@ package main
 import (
 	"image"
 	"image/color"
-	"math"
 
 	"gioui.org/f32"
 	"gioui.org/layout"
@@ -19,16 +18,17 @@ import (
 type todoTheme struct {
 	Shaper text.Shaper
 	Color  struct {
-		Background color.RGBA
-		MainPanel  color.RGBA
-		Item       color.RGBA
-		ItemDone   color.RGBA
-		HintText   color.RGBA
-		StatusText color.RGBA
-		Border     color.RGBA
-		Title      color.RGBA
-		Cross      color.RGBA
-		Checkmark  color.RGBA
+		Background color.NRGBA
+		MainPanel  color.NRGBA
+		Item       color.NRGBA
+		ItemDone   color.NRGBA
+		HintText   color.NRGBA
+		StatusText color.NRGBA
+		Selection  color.NRGBA
+		Border     color.NRGBA
+		Title      color.NRGBA
+		Cross      color.NRGBA
+		Checkmark  color.NRGBA
 	}
 	Size struct {
 		ItemText     unit.Value
@@ -53,17 +53,18 @@ func newTodoTheme(fonts []text.FontFace) *todoTheme {
 	th := &todoTheme{Shaper: text.NewCache(fonts)}
 
 	// Colors.
-	th.Color.Background = color.RGBA{245, 245, 245, 255}
-	th.Color.MainPanel = color.RGBA{255, 255, 255, 255}
-	th.Color.Item = color.RGBA{77, 77, 77, 255}
-	th.Color.ItemDone = color.RGBA{217, 217, 217, 255}
+	th.Color.Background = color.NRGBA{245, 245, 245, 255}
+	th.Color.MainPanel = color.NRGBA{255, 255, 255, 255}
+	th.Color.Item = color.NRGBA{77, 77, 77, 255}
+	th.Color.ItemDone = color.NRGBA{217, 217, 217, 255}
 
-	th.Color.HintText = color.RGBA{243, 234, 243, 255}
-	th.Color.StatusText = color.RGBA{119, 119, 119, 255}
-	th.Color.Border = color.RGBA{246, 246, 246, 255}
-	th.Color.Title = color.RGBA{175, 47, 47, 100}
-	th.Color.Cross = color.RGBA{175, 91, 94, 255}
-	th.Color.Checkmark = color.RGBA{93, 194, 175, 255}
+	th.Color.HintText = color.NRGBA{243, 234, 243, 255}
+	th.Color.StatusText = color.NRGBA{119, 119, 119, 255}
+	th.Color.Border = color.NRGBA{235, 235, 235, 255}
+	th.Color.Title = color.NRGBA{175, 47, 47, 100}
+	th.Color.Cross = color.NRGBA{175, 91, 94, 255}
+	th.Color.Checkmark = color.NRGBA{93, 194, 175, 255}
+	th.Color.Selection = color.NRGBA{93, 194, 175, 100}
 
 	// Sizes.
 	th.Size.ItemText = unit.Dp(26)
@@ -99,7 +100,7 @@ func newTodoTheme(fonts []text.FontFace) *todoTheme {
 
 type labelStyle struct {
 	Text          string
-	Color         color.RGBA
+	Color         color.NRGBA
 	Font          text.Font
 	TextSize      unit.Value
 	StrikeThrough bool
@@ -138,9 +139,9 @@ func (l labelStyle) Layout(gtx layout.Context) layout.Dimensions {
 
 	// Draw strike.
 	if l.StrikeThrough {
-		h := float32(dim.Size.Y) / 2
-		rect := f32.Rect(0, h, float32(dim.Size.X), h+float32(gtx.Px(unit.Dp(1))))
-		paint.PaintOp{Rect: rect}.Add(gtx.Ops)
+		h := dim.Size.Y / 2
+		rect := clip.Rect(image.Rect(0, h, dim.Size.X, h+gtx.Px(unit.Dp(2))))
+		paint.FillShape(gtx.Ops, l.Color, rect.Op())
 	}
 	return dim
 }
@@ -159,7 +160,7 @@ func (th *todoTheme) Editor(ed *widget.Editor, hint string) editorStyle {
 }
 
 func (e *editorStyle) Layout(gtx layout.Context) layout.Dimensions {
-	defer op.Push(gtx.Ops).Pop()
+	defer op.Save(gtx.Ops).Load()
 
 	// Draw label.
 	macro := op.Record(gtx.Ops)
@@ -176,14 +177,17 @@ func (e *editorStyle) Layout(gtx layout.Context) layout.Dimensions {
 
 	// Draw editor.
 	dims = e.Editor.Layout(gtx, e.theme.Shaper, e.theme.Font.Item, e.theme.Size.ItemText)
-	disabled := gtx.Queue == nil
+	if e.Editor.SelectionLen() > 0 {
+		paint.ColorOp{Color: e.theme.Color.Selection}.Add(gtx.Ops)
+		e.Editor.PaintSelection(gtx)
+	}
 	if e.Editor.Len() > 0 {
-		textColor := e.theme.Color.Item
-		paint.ColorOp{Color: textColor}.Add(gtx.Ops)
+		paint.ColorOp{Color: e.theme.Color.Item}.Add(gtx.Ops)
 		e.Editor.PaintText(gtx)
 	} else {
 		call.Add(gtx.Ops)
 	}
+	disabled := gtx.Queue == nil
 	if !disabled {
 		paint.ColorOp{Color: e.theme.Color.Item}.Add(gtx.Ops)
 		e.Editor.PaintCaret(gtx)
@@ -237,58 +241,49 @@ func (it *itemStyle) drawCheckbox(gtx layout.Context) layout.Dimensions {
 		rect = f32.Rect(0, 0, float32(spx), float32(spx))
 	)
 	if it.Check.Value {
+		circleColor := it.theme.Color.Checkmark
+		circleColor.A = 125
 		it.drawMark(gtx, rect, it.theme.Color.Checkmark)
-		it.drawCircle(gtx, rect, mulAlpha(it.theme.Color.Checkmark, 150))
+		it.drawCircle(gtx, rect, circleColor)
 	} else {
 		it.drawCircle(gtx, rect, it.theme.Color.Border)
 	}
 	return layout.Dimensions{Size: size}
 }
 
-func (it *itemStyle) drawCircle(gtx layout.Context, rect f32.Rectangle, color color.RGBA) {
-	defer op.Push(gtx.Ops).Pop()
-
+func (it *itemStyle) drawCircle(gtx layout.Context, rect f32.Rectangle, color color.NRGBA) {
 	r := rect.Dx() / 2
 	w := float32(gtx.Px(unit.Sp(1)))
 	b := clip.Border{Rect: rect, NE: r, NW: r, SE: r, SW: r, Width: w}
-	b.Add(gtx.Ops)
-	paint.ColorOp{Color: color}.Add(gtx.Ops)
-	paint.PaintOp{Rect: rect}.Add(gtx.Ops)
+	paint.FillShape(gtx.Ops, color, b.Op(gtx.Ops))
 }
 
-func (it *itemStyle) drawMark(gtx layout.Context, rect f32.Rectangle, color color.RGBA) {
-	defer op.Push(gtx.Ops).Pop()
-
+func (it *itemStyle) drawMark(gtx layout.Context, rect f32.Rectangle, color color.NRGBA) {
+	// Construct path.
 	var (
-		down = f32.Rect(0, 0, float32(gtx.Px(unit.Dp(7))), float32(gtx.Px(unit.Dp(2))))
-		up   = f32.Rect(0, 0, float32(gtx.Px(unit.Dp(18))), float32(gtx.Px(unit.Dp(2))))
-		rot1 = f32.Affine2D{}.Rotate(f32.Pt(0, 0), -math.Pi/1.34)
-		rot2 = f32.Affine2D{}.Rotate(f32.Pt(0, 0), math.Pi/2.3)
+		path  clip.Path
+		start = f32.Pt(rect.Dx()-rect.Dx()/4, rect.Dy()/4)
+		low   = f32.Pt(rect.Dx()/2.3, rect.Dy()-rect.Dy()/4.6)
+		end   = f32.Pt(rect.Dx()/4, rect.Dy()-rect.Dy()/2.4)
 	)
-	paint.ColorOp{Color: color}.Add(gtx.Ops)
-	op.Offset(f32.Pt(rect.Dx()/2.5, rect.Dy()-rect.Dy()/4.3)).Add(gtx.Ops)
-	op.Affine(rot1).Add(gtx.Ops)
-	paint.PaintOp{Rect: down}.Add(gtx.Ops)
-	op.Affine(rot2).Add(gtx.Ops)
-	paint.PaintOp{Rect: up}.Add(gtx.Ops)
-}
+	path.Begin(gtx.Ops)
+	path.MoveTo(start)
+	path.LineTo(low)
+	path.LineTo(end)
+	ps := path.End()
 
-// mulAlpha scales all color components by alpha/255.
-func mulAlpha(c color.RGBA, alpha uint8) color.RGBA {
-	a := uint16(alpha)
-	return color.RGBA{
-		A: uint8(uint16(c.A) * a / 255),
-		R: uint8(uint16(c.R) * a / 255),
-		G: uint8(uint16(c.G) * a / 255),
-		B: uint8(uint16(c.B) * a / 255),
-	}
+	// Draw it.
+	paint.FillShape(gtx.Ops, color, clip.Stroke{Path: ps, Style: clip.StrokeStyle{
+		Width: float32(gtx.Px(unit.Dp(1.8))),
+		Join:  clip.RoundJoin,
+	}}.Op())
 }
 
 // Buttons.
 
 type buttonStyle struct {
 	Label  labelStyle
-	Border color.RGBA
+	Border color.NRGBA
 	Active bool
 	Button *widget.Clickable
 	theme  *todoTheme
@@ -328,8 +323,8 @@ func (b buttonStyle) Layout(gtx layout.Context) layout.Dimensions {
 	)
 }
 
-func (b buttonStyle) drawBorder(gtx layout.Context, color color.RGBA) layout.Dimensions {
-	defer op.Push(gtx.Ops).Pop()
+func (b buttonStyle) drawBorder(gtx layout.Context, color color.NRGBA) layout.Dimensions {
+	defer op.Save(gtx.Ops).Load()
 
 	var (
 		radius = b.theme.Size.CornerRadius
@@ -339,18 +334,9 @@ func (b buttonStyle) drawBorder(gtx layout.Context, color color.RGBA) layout.Dim
 		border = clip.Border{Rect: rect, Width: w, SE: r, SW: r, NE: r, NW: r}
 	)
 	if b.Active {
-		border.Add(gtx.Ops)
-		paint.ColorOp{color}.Add(gtx.Ops)
-		paint.PaintOp{rect}.Add(gtx.Ops)
+		paint.FillShape(gtx.Ops, color, border.Op(gtx.Ops))
 	}
 	return layout.Dimensions{Size: gtx.Constraints.Min}
-}
-
-func fill(gtx layout.Context, color color.RGBA) {
-	defer op.Push(gtx.Ops).Pop()
-	rect := f32.Rectangle{Min: f32.Pt(0, 0), Max: layout.FPt(gtx.Constraints.Max)}
-	paint.ColorOp{color}.Add(gtx.Ops)
-	paint.PaintOp{rect}.Add(gtx.Ops)
 }
 
 // showIf draws w if cond is true.

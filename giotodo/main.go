@@ -11,6 +11,8 @@ import (
 	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
+	"gioui.org/op/clip"
+	"gioui.org/op/paint"
 	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget"
@@ -70,7 +72,8 @@ func (ui *todoUI) Layout(gtx layout.Context) layout.Dimensions {
 	// Draw.
 	gtx.Constraints.Min.X = gtx.Px(ui.theme.Size.MainWidth)
 	gtx.Constraints.Max.X = gtx.Px(ui.theme.Size.MainWidth)
-	fill(gtx, ui.theme.Color.MainPanel)
+	rect := clip.Rect{Max: gtx.Constraints.Max}
+	paint.FillShape(gtx.Ops, ui.theme.Color.MainPanel, rect.Op())
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return ui.theme.Pad.Main.Layout(gtx, ui.layoutInput)
@@ -170,7 +173,7 @@ func loop(w *app.Window, theme *todoTheme) error {
 				return e.Err
 			case system.FrameEvent:
 				gtx := layout.NewContext(&ops, e)
-				fill(gtx, ui.theme.Color.Background)
+				paint.Fill(gtx.Ops, ui.theme.Color.Background)
 				layout.Center.Layout(gtx, ui.Layout)
 				e.Frame(gtx.Ops)
 			}
