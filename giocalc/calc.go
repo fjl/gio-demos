@@ -137,7 +137,7 @@ func (c *calculator) flipSign() {
 
 // run applies the given operation.
 func (c *calculator) run(op calcOp) {
-	if op == opEq {
+	if op == opEq || op == c.lastOp {
 		c.top = c.lastOp.apply(c.queued, c.top)
 		c.input = ""
 	}

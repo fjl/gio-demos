@@ -8,11 +8,14 @@ import (
 	"runtime"
 
 	"gioui.org/app"
+	"gioui.org/f32"
 	"gioui.org/font/gofont"
+	"gioui.org/io/clipboard"
 	"gioui.org/io/key"
 	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
+	"gioui.org/op/paint"
 	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget"
@@ -20,14 +23,16 @@ import (
 )
 
 var (
-	digitColor      = color.RGBA{90, 90, 90, 255}
-	specialColor    = color.RGBA{70, 70, 70, 255}
-	opColor         = color.RGBA{122, 90, 90, 255}
-	activeOpColor   = color.RGBA{160, 90, 90, 255}
-	backgroundColor = color.RGBA{50, 50, 50, 255}
-	resultColor     = color.RGBA{255, 255, 255, 255}
+	designWidth     = unit.Dp(270)
+	designHeight    = unit.Dp(286)
+	digitColor      = color.NRGBA{90, 90, 90, 255}
+	specialColor    = color.NRGBA{70, 70, 70, 255}
+	opColor         = color.NRGBA{122, 90, 90, 255}
+	activeOpColor   = color.NRGBA{160, 90, 90, 255}
+	backgroundColor = color.NRGBA{50, 50, 50, 255}
+	resultColor     = color.NRGBA{255, 255, 255, 255}
 	controlInset    = unit.Dp(6)
-	resultHeight    = unit.Dp(60)
+	resultHeight    = unit.Dp(80)
 )
 
 // calcUI is the user interface of the calculator.
@@ -77,9 +82,23 @@ func (ui *calcUI) special(name string, fn func()) *button {
 	return b
 }
 
-// Layout draws the UI.
 func (ui *calcUI) Layout(gtx layout.Context) layout.Dimensions {
+	scale := float32(gtx.Constraints.Max.X) / float32(gtx.Px(designWidth))
+	tr := f32.Affine2D{}.Scale(f32.Pt(0, 0), f32.Pt(scale, scale))
+	op.Affine(tr).Add(gtx.Ops)
+	gtx.Constraints.Min.X = gtx.Px(designWidth)
+	gtx.Constraints.Max.X = gtx.Px(designWidth)
+	gtx.Constraints.Max.Y = int(float32(gtx.Constraints.Max.Y)/scale + 0.5)
+	height := float32(gtx.Constraints.Max.Y)
+	inset := layout.Inset{}
+	if height > float32(gtx.Px(designHeight)) {
+		inset.Top = unit.Px(height - float32(gtx.Px(designHeight)))
+	}
+	return inset.Layout(gtx, ui.layout)
+}
 
+// layout draws the UI.
+func (ui *calcUI) layout(gtx layout.Context) layout.Dimensions {
 	// Draw the result and buttons.
 	inset := layout.UniformInset(controlInset)
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
@@ -112,6 +131,9 @@ func (ui *calcUI) layoutButtons(gtx layout.Context) layout.Dimensions {
 
 // handleKey handles a key event.
 func (ui *calcUI) handleKey(e key.Event) {
+	if e.State == key.Release {
+		return
+	}
 	switch e.Name {
 	case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".":
 		ui.calc.digit(e.Name)
@@ -147,7 +169,7 @@ type button struct {
 	op      calcOp
 }
 
-func newButton(calc *calculator, theme *material.Theme, text string, color color.RGBA) *button {
+func newButton(calc *calculator, theme *material.Theme, text string, color color.NRGBA) *button {
 	b := &button{calc: calc}
 	b.style = material.Button(theme, &b.clicker, text)
 	b.style.Background = color
@@ -171,15 +193,13 @@ func (b *button) Layout(gtx layout.Context) layout.Dimensions {
 
 func main() {
 	var (
-		width  = unit.Dp(270)
-		height = unit.Dp(286)
-		min    = app.MinSize(width, height)
-		max    = app.MaxSize(width, height)
-		size   = app.Size(width, height)
-		title  = app.Title("GioCalc")
+		min = app.MinSize(designWidth, designHeight)
+		// max   = app.MaxSize(designWidth, designHeight)
+		size  = app.Size(designWidth, designHeight)
+		title = app.Title("GioCalc")
 	)
 	go func() {
-		w := app.NewWindow(min, max, size, title)
+		w := app.NewWindow(min, size, title)
 		if err := loop(w); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
@@ -203,7 +223,7 @@ func loop(w *app.Window) error {
 			return e.Err
 		case system.FrameEvent:
 			gtx := layout.NewContext(&ops, e)
-			fill(gtx.Ops, gtx.Constraints.Max, backgroundColor)
+			paint.Fill(gtx.Ops, backgroundColor)
 			inset := layout.Inset{
 				Top:    e.Insets.Top,
 				Bottom: e.Insets.Bottom,
@@ -222,7 +242,7 @@ func loop(w *app.Window) error {
 				ui.handleKey(e)
 				w.Invalidate()
 			}
-		case system.ClipboardEvent:
+		case clipboard.Event:
 			ui.calc.parse(e.Text)
 			w.Invalidate()
 		}

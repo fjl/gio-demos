@@ -2,12 +2,10 @@ package main
 
 import (
 	"image"
-	"image/color"
 
 	"gioui.org/f32"
 	"gioui.org/layout"
 	"gioui.org/op"
-	"gioui.org/op/paint"
 	"gioui.org/unit"
 )
 
@@ -42,11 +40,11 @@ func (g *grid) layout(gtx layout.Context, widget gridWidget) layout.Dimensions {
 				Y: int(float32(row)*h + float32(row)*space),
 			}
 			size := image.Pt(int(w), int(h))
-			stk := op.Push(gtx.Ops)
+			stk := op.Save(gtx.Ops)
 			op.Offset(layout.FPt(pos)).Add(gtx.Ops)
 			gtx.Constraints = layout.Exact(size)
 			widget(row, col, gtx)
-			stk.Pop()
+			stk.Load()
 		}
 	}
 	return layout.Dimensions{Size: size}
@@ -54,7 +52,7 @@ func (g *grid) layout(gtx layout.Context, widget gridWidget) layout.Dimensions {
 
 // shrinkToFit renders w, scaling down if it doesn't fit into the available width.
 func shrinkToFit(gtx layout.Context, w layout.Widget) layout.Dimensions {
-	defer op.Push(gtx.Ops).Pop()
+	defer op.Save(gtx.Ops).Load()
 
 	// Render w with near-infinite width.
 	macro := op.Record(gtx.Ops)
@@ -72,11 +70,4 @@ func shrinkToFit(gtx layout.Context, w layout.Widget) layout.Dimensions {
 	}
 	call.Add(gtx.Ops)
 	return layout.Dimensions{Size: gtx.Constraints.Max}
-}
-
-// fill paints a rectangle.
-func fill(ops *op.Ops, size image.Point, color color.RGBA) {
-	bounds := f32.Rect(0, 0, float32(size.X), float32(size.Y))
-	paint.ColorOp{Color: color}.Add(ops)
-	paint.PaintOp{Rect: bounds}.Add(ops)
 }
