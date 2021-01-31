@@ -251,6 +251,7 @@ func (it *itemStyle) drawCheckbox(gtx layout.Context) layout.Dimensions {
 	return layout.Dimensions{Size: size}
 }
 
+// drawCircle draws the checkmark button outline.
 func (it *itemStyle) drawCircle(gtx layout.Context, rect f32.Rectangle, color color.NRGBA) {
 	r := rect.Dx() / 2
 	w := float32(gtx.Px(unit.Sp(1)))
@@ -258,8 +259,8 @@ func (it *itemStyle) drawCircle(gtx layout.Context, rect f32.Rectangle, color co
 	paint.FillShape(gtx.Ops, color, b.Op(gtx.Ops))
 }
 
+// drawMark draws the checkmark.
 func (it *itemStyle) drawMark(gtx layout.Context, rect f32.Rectangle, color color.NRGBA) {
-	// Construct path.
 	var (
 		path  clip.Path
 		start = f32.Pt(rect.Dx()-rect.Dx()/4, rect.Dy()/4)
@@ -270,13 +271,13 @@ func (it *itemStyle) drawMark(gtx layout.Context, rect f32.Rectangle, color colo
 	path.MoveTo(start)
 	path.LineTo(low)
 	path.LineTo(end)
-	ps := path.End()
-
-	// Draw it.
-	paint.FillShape(gtx.Ops, color, clip.Stroke{Path: ps, Style: clip.StrokeStyle{
-		Width: float32(gtx.Px(unit.Dp(1.8))),
-		Join:  clip.RoundJoin,
-	}}.Op())
+	paint.FillShape(gtx.Ops, color, clip.Stroke{
+		Path: path.End(),
+		Style: clip.StrokeStyle{
+			Width: float32(gtx.Px(unit.Dp(1.8))),
+			Join:  clip.RoundJoin,
+		},
+	}.Op())
 }
 
 // Buttons.
