@@ -325,13 +325,11 @@ func (b buttonStyle) Layout(gtx layout.Context) layout.Dimensions {
 }
 
 func (b buttonStyle) drawBorder(gtx layout.Context, color color.NRGBA) layout.Dimensions {
-	defer op.Save(gtx.Ops).Load()
-
 	var (
 		radius = b.theme.Size.CornerRadius
 		r      = float32(gtx.Px(radius))
-		rect   = f32.Rectangle{Min: f32.Pt(0, 0), Max: layout.FPt(gtx.Constraints.Min)}
 		w      = float32(gtx.Px(unit.Dp(1)))
+		rect   = f32.Rectangle{Min: f32.Pt(0, 0), Max: layout.FPt(gtx.Constraints.Min)}
 		border = clip.Border{Rect: rect, Width: w, SE: r, SW: r, NE: r, NW: r}
 	)
 	if b.Active {
