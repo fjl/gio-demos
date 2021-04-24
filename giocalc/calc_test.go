@@ -66,6 +66,20 @@ func TestCalcOpTwice(t *testing.T) {
 	check(t, c, "1")
 }
 
+func TestCalcOpChain(t *testing.T) {
+	var c calculator
+	c.digit("8")
+	c.digit("8")
+	c.run(opSub)
+	c.digit("1")
+	c.run(opSub)
+	check(t, c, "87")
+	c.digit("1")
+	c.digit("1")
+	c.run(opAdd)
+	check(t, c, "76")
+}
+
 func check(t *testing.T, c calculator, text string) {
 	t.Helper()
 	if c.text() != text {
