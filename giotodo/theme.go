@@ -253,10 +253,16 @@ func (it *itemStyle) drawCheckbox(gtx layout.Context) layout.Dimensions {
 
 // drawCircle draws the checkmark button outline.
 func (it *itemStyle) drawCircle(gtx layout.Context, rect f32.Rectangle, color color.NRGBA) {
-	r := rect.Dx() / 2
 	w := float32(gtx.Px(unit.Sp(1)))
-	b := clip.Border{Rect: rect, NE: r, NW: r, SE: r, SW: r, Width: w}
-	paint.FillShape(gtx.Ops, color, b.Op(gtx.Ops))
+	circle := clip.Circle{
+		Center: f32.Pt(rect.Max.X/2, rect.Max.Y/2),
+		Radius: rect.Dx() / 2,
+	}
+	stroke := clip.Stroke{
+		Path:  circle.Path(gtx.Ops),
+		Style: clip.StrokeStyle{Width: w},
+	}
+	paint.FillShape(gtx.Ops, color, stroke.Op())
 }
 
 // drawMark draws the checkmark.
@@ -330,10 +336,11 @@ func (b buttonStyle) drawBorder(gtx layout.Context, color color.NRGBA) layout.Di
 		r      = float32(gtx.Px(radius))
 		w      = float32(gtx.Px(unit.Dp(1)))
 		rect   = f32.Rectangle{Min: f32.Pt(0, 0), Max: layout.FPt(gtx.Constraints.Min)}
-		border = clip.Border{Rect: rect, Width: w, SE: r, SW: r, NE: r, NW: r}
+		rr     = clip.RRect{Rect: rect, SE: r, SW: r, NE: r, NW: r}
+		border = clip.Stroke{Path: rr.Path(gtx.Ops), Style: clip.StrokeStyle{Width: w}}
 	)
 	if b.Active {
-		paint.FillShape(gtx.Ops, color, border.Op(gtx.Ops))
+		paint.FillShape(gtx.Ops, color, border.Op())
 	}
 	return layout.Dimensions{Size: gtx.Constraints.Min}
 }
