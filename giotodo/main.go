@@ -101,12 +101,20 @@ func (ui *todoUI) layoutInput(gtx layout.Context) layout.Dimensions {
 func (ui *todoUI) layoutItems(gtx layout.Context) layout.Dimensions {
 	items := ui.todos.filteredItems(ui.filter)
 
-	return ui.list.Layout(gtx, len(items), func(gtx layout.Context, i int) layout.Dimensions {
-		item := items[i]
+	// Process item actions.
+	for _, item := range items {
 		if item.done.Changed() {
 			ui.todos.setItemDone(item, item.done.Value)
 		}
-		box := ui.theme.Item(item.text, &item.done, nil)
+		if item.remove.Clicked() {
+			ui.todos.remove(item)
+		}
+	}
+
+	// Draw the list.
+	return ui.list.Layout(gtx, len(items), func(gtx layout.Context, i int) layout.Dimensions {
+		item := items[i]
+		box := ui.theme.Item(item.text, item)
 		return box.Layout(gtx)
 	})
 }

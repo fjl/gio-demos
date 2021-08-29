@@ -200,49 +200,82 @@ func (e *editorStyle) Layout(gtx layout.Context) layout.Dimensions {
 // Items.
 
 type itemStyle struct {
-	Label   labelStyle
-	Check   *widget.Bool
-	Destroy *widget.Clickable
-	theme   *todoTheme
+	item  *item
+	Label labelStyle
+	theme *todoTheme
 }
 
 // Item renders a todo item.
-func (th *todoTheme) Item(txt string, check *widget.Bool, destroy *widget.Clickable) itemStyle {
+func (th *todoTheme) Item(txt string, item *item) itemStyle {
 	return itemStyle{
-		Label:   th.ItemLabel(txt),
-		Check:   check,
-		Destroy: destroy,
-		theme:   th,
+		item:  item,
+		Label: th.ItemLabel(txt),
+		theme: th,
 	}
 }
 
+// Layout draws a complete item.
 func (it *itemStyle) Layout(gtx layout.Context) layout.Dimensions {
+	var (
+		cbsize  = gtx.Px(it.theme.Size.Checkbox)
+		cbconst = layout.Exact(image.Pt(cbsize, cbsize))
+	)
+
 	flex := layout.Flex{Alignment: layout.Middle}
 	return flex.Layout(gtx,
+		// Checkbox.
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			gtx.Constraints = cbconst     // Constant size.
+			it.item.done.Layout(gtx)      // Handle clicks.
+			return it.layoutCheckbox(gtx) // Draw.
+		}),
+		// Item text.
+		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+			// Stack the text click here to track hovering over the text.
 			return layout.Stack{}.Layout(gtx,
-				layout.Expanded(it.Check.Layout),
-				layout.Stacked(it.drawCheckbox),
+				layout.Expanded(it.item.textClick.Layout),
+				layout.Stacked(it.layoutText),
 			)
 		}),
-		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-			label := it.Label
-			if it.Check.Value {
-				label.Color = it.theme.Color.ItemDone
-				label.StrikeThrough = true
+		// Remove button.
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			gtx.Constraints = cbconst  // Constant size (same as checkbox).
+			it.item.remove.Layout(gtx) // Handle clicks.
+			// Draw cross when hovering over the item.
+			hovered := it.item.textClick.Hovered() || it.item.remove.Hovered()
+			dim := layout.Dimensions{Size: cbconst.Max}
+			if hovered {
+				inset := layout.UniformInset(unit.Dp(10))
+				dim = inset.Layout(gtx, it.layoutCross)
 			}
-			return it.theme.Pad.Item.Layout(gtx, label.Layout)
+			return dim
 		}),
 	)
 }
 
-func (it *itemStyle) drawCheckbox(gtx layout.Context) layout.Dimensions {
+// layoutText draws the item text.
+func (it *itemStyle) layoutText(gtx layout.Context) layout.Dimensions {
+	label := it.Label
+	if it.item.done.Value {
+		label.Color = it.theme.Color.ItemDone
+		label.StrikeThrough = true
+	}
+	dim := it.theme.Pad.Item.Layout(gtx, label.Layout)
+	// Label returns minimum required size, but should really
+	// grab all available space to make the alignment work, so
+	// forcefully expand size to max width here.
+	dim.Size.X = gtx.Constraints.Max.X
+	return dim
+}
+
+// layoutCheckbox draws the checkbox.
+func (it *itemStyle) layoutCheckbox(gtx layout.Context) layout.Dimensions {
 	var (
-		spx  = gtx.Px(it.theme.Size.Checkbox)
+		spx  = gtx.Constraints.Max.X
 		size = image.Pt(spx, spx)
-		rect = f32.Rect(0, 0, float32(spx), float32(spx))
+		rect = f32.Rectangle{Max: layout.FPt(size)}
 	)
-	if it.Check.Value {
+	if it.item.done.Value {
 		circleColor := it.theme.Color.Checkmark
 		circleColor.A = 125
 		it.drawMark(gtx, rect, it.theme.Color.Checkmark)
@@ -267,7 +300,7 @@ func (it *itemStyle) drawCircle(gtx layout.Context, rect f32.Rectangle, color co
 	paint.FillShape(gtx.Ops, color, stroke.Op())
 }
 
-// drawMark draws the checkmark.
+// drawMark draws the checkmark button icon.
 func (it *itemStyle) drawMark(gtx layout.Context, rect f32.Rectangle, color color.NRGBA) {
 	var (
 		path  clip.Path
@@ -280,11 +313,42 @@ func (it *itemStyle) drawMark(gtx layout.Context, rect f32.Rectangle, color colo
 	path.LineTo(low)
 	path.LineTo(end)
 	paint.FillShape(gtx.Ops, color, clip.Stroke{
-		Path: path.End(),
-		Style: clip.StrokeStyle{
-			Width: float32(gtx.Px(unit.Dp(1.8))),
-			Join:  clip.RoundJoin,
-		},
+		Path:  path.End(),
+		Style: clip.StrokeStyle{Width: float32(gtx.Px(unit.Dp(1.8)))},
+	}.Op())
+}
+
+// layoutCross draws the remove button.
+func (it *itemStyle) layoutCross(gtx layout.Context) layout.Dimensions {
+	// Draw.
+	var (
+		spx  = gtx.Constraints.Max.X
+		size = image.Pt(spx, spx)
+		rect = f32.Rectangle{Max: layout.FPt(size)}
+	)
+	it.drawCross(gtx, rect)
+	return layout.Dimensions{Size: size}
+}
+
+// drawCross draws the remove button icon.
+func (it *itemStyle) drawCross(gtx layout.Context, rect f32.Rectangle) {
+	var color = it.theme.Color.Cross
+
+	var path clip.Path
+	path.Begin(gtx.Ops)
+	path.MoveTo(f32.Pt(rect.Min.X, rect.Min.Y))
+	path.LineTo(f32.Pt(rect.Max.X, rect.Max.Y))
+	paint.FillShape(gtx.Ops, color, clip.Stroke{
+		Path:  path.End(),
+		Style: clip.StrokeStyle{Width: float32(gtx.Px(unit.Dp(1.8)))},
+	}.Op())
+
+	path.Begin(gtx.Ops)
+	path.MoveTo(f32.Pt(rect.Min.X, rect.Max.Y))
+	path.LineTo(f32.Pt(rect.Max.X, rect.Min.Y))
+	paint.FillShape(gtx.Ops, color, clip.Stroke{
+		Path:  path.End(),
+		Style: clip.StrokeStyle{Width: float32(gtx.Px(unit.Dp(1.8)))},
 	}.Op())
 }
 

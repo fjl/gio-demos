@@ -21,7 +21,11 @@ type item struct {
 	id   todostore.ID
 	elem *list.Element
 	text string
-	done widget.Bool
+
+	// UI state.
+	done      widget.Bool
+	remove    widget.Clickable
+	textClick widget.Clickable
 }
 
 type todoModel struct {
@@ -140,4 +144,8 @@ func (m *todoModel) clearDone() {
 
 func (m *todoModel) add(text string) {
 	m.store.AddItem(todostore.Item{Text: text})
+}
+
+func (m *todoModel) remove(it *item) {
+	m.store.RemoveItem(it.id)
 }
