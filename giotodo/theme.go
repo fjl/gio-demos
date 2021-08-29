@@ -384,16 +384,28 @@ func (th *todoTheme) Clickable(click *widget.Clickable, txt string) buttonStyle 
 }
 
 func (b buttonStyle) Layout(gtx layout.Context) layout.Dimensions {
-	b.Button.Layout(gtx)
-	return layout.Stack{}.Layout(gtx,
-		layout.Expanded(b.Button.Layout),
-		layout.Stacked(func(gtx layout.Context) layout.Dimensions {
-			return b.theme.Pad.Button.Layout(gtx, b.Label.Layout)
-		}),
-		layout.Expanded(func(gtx layout.Context) layout.Dimensions {
-			return b.drawBorder(gtx, b.Border)
-		}),
-	)
+	inset := layout.UniformInset(unit.Dp(1))
+	return inset.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return layout.Stack{}.Layout(gtx,
+			// Handle clicks.
+			layout.Expanded(b.Button.Layout),
+			// Draw text.
+			layout.Stacked(func(gtx layout.Context) layout.Dimensions {
+				return b.theme.Pad.Button.Layout(gtx, b.Label.Layout)
+			}),
+			// Draw border.
+			layout.Expanded(func(gtx layout.Context) layout.Dimensions {
+				if b.Active {
+					return b.drawBorder(gtx, b.Border)
+				} else if b.Button.Hovered() {
+					color := b.Border
+					color.A -= color.A / 3
+					return b.drawBorder(gtx, color)
+				}
+				return layout.Dimensions{}
+			}),
+		)
+	})
 }
 
 func (b buttonStyle) drawBorder(gtx layout.Context, color color.NRGBA) layout.Dimensions {
@@ -405,9 +417,7 @@ func (b buttonStyle) drawBorder(gtx layout.Context, color color.NRGBA) layout.Di
 		rr     = clip.RRect{Rect: rect, SE: r, SW: r, NE: r, NW: r}
 		border = clip.Stroke{Path: rr.Path(gtx.Ops), Style: clip.StrokeStyle{Width: w}}
 	)
-	if b.Active {
-		paint.FillShape(gtx.Ops, color, border.Op())
-	}
+	paint.FillShape(gtx.Ops, color, border.Op())
 	return layout.Dimensions{Size: gtx.Constraints.Min}
 }
 
