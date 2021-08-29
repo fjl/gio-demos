@@ -24,6 +24,7 @@ type todoTheme struct {
 		ItemDone   color.NRGBA
 		HintText   color.NRGBA
 		StatusText color.NRGBA
+		Error      color.NRGBA
 		Selection  color.NRGBA
 		Border     color.NRGBA
 		Title      color.NRGBA
@@ -60,6 +61,7 @@ func newTodoTheme(fonts []text.FontFace) *todoTheme {
 
 	th.Color.HintText = color.NRGBA{243, 234, 243, 255}
 	th.Color.StatusText = color.NRGBA{119, 119, 119, 255}
+	th.Color.Error = color.NRGBA{255, 119, 119, 255}
 	th.Color.Border = color.NRGBA{235, 235, 235, 255}
 	th.Color.Title = color.NRGBA{175, 47, 47, 100}
 	th.Color.Cross = color.NRGBA{175, 91, 94, 255}
