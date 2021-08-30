@@ -132,7 +132,7 @@ func (th *todoTheme) ItemLabel(txt string) labelStyle {
 	}
 }
 
-func (l labelStyle) Layout(gtx layout.Context) layout.Dimensions {
+func (l *labelStyle) Layout(gtx layout.Context) layout.Dimensions {
 	gtx.Constraints.Min = image.Point{}
 
 	// Draw text.
@@ -206,10 +206,10 @@ type itemStyle struct {
 }
 
 // Item renders a todo item.
-func (th *todoTheme) Item(txt string, item *item) itemStyle {
+func (th *todoTheme) Item(item *item) itemStyle {
 	return itemStyle{
 		item:  item,
-		Label: th.ItemLabel(txt),
+		Label: th.ItemLabel(item.text),
 		theme: th,
 	}
 }
@@ -233,8 +233,8 @@ func (it *itemStyle) Layout(gtx layout.Context) layout.Dimensions {
 		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 			// Stack the text click here to track hovering over the text.
 			return layout.Stack{}.Layout(gtx,
-				layout.Expanded(it.item.textClick.Layout),
 				layout.Stacked(it.layoutText),
+				layout.Expanded(it.item.textClick.Layout),
 			)
 		}),
 		// Remove button.
@@ -271,7 +271,7 @@ func (it *itemStyle) layoutText(gtx layout.Context) layout.Dimensions {
 // layoutCheckbox draws the checkbox.
 func (it *itemStyle) layoutCheckbox(gtx layout.Context) layout.Dimensions {
 	var (
-		spx  = gtx.Constraints.Max.X
+		spx  = gtx.Constraints.Min.X
 		size = image.Pt(spx, spx)
 		rect = f32.Rectangle{Max: layout.FPt(size)}
 	)
@@ -288,16 +288,11 @@ func (it *itemStyle) layoutCheckbox(gtx layout.Context) layout.Dimensions {
 
 // drawCircle draws the checkmark button outline.
 func (it *itemStyle) drawCircle(gtx layout.Context, rect f32.Rectangle, color color.NRGBA) {
-	w := float32(gtx.Px(unit.Sp(1)))
 	circle := clip.Circle{
 		Center: f32.Pt(rect.Max.X/2, rect.Max.Y/2),
 		Radius: rect.Dx() / 2,
 	}
-	stroke := clip.Stroke{
-		Path:  circle.Path(gtx.Ops),
-		Style: clip.StrokeStyle{Width: w},
-	}
-	paint.FillShape(gtx.Ops, color, stroke.Op())
+	fillPath(gtx, circle.Path(gtx.Ops), color, unit.Sp(1))
 }
 
 // drawMark draws the checkmark button icon.
@@ -312,17 +307,13 @@ func (it *itemStyle) drawMark(gtx layout.Context, rect f32.Rectangle, color colo
 	path.MoveTo(start)
 	path.LineTo(low)
 	path.LineTo(end)
-	paint.FillShape(gtx.Ops, color, clip.Stroke{
-		Path:  path.End(),
-		Style: clip.StrokeStyle{Width: float32(gtx.Px(unit.Dp(1.8)))},
-	}.Op())
+	fillPath(gtx, path.End(), color, unit.Dp(1.8))
 }
 
 // layoutCross draws the remove button.
 func (it *itemStyle) layoutCross(gtx layout.Context) layout.Dimensions {
-	// Draw.
 	var (
-		spx  = gtx.Constraints.Max.X
+		spx  = gtx.Constraints.Min.X
 		size = image.Pt(spx, spx)
 		rect = f32.Rectangle{Max: layout.FPt(size)}
 	)
@@ -332,24 +323,18 @@ func (it *itemStyle) layoutCross(gtx layout.Context) layout.Dimensions {
 
 // drawCross draws the remove button icon.
 func (it *itemStyle) drawCross(gtx layout.Context, rect f32.Rectangle) {
-	var color = it.theme.Color.Cross
-
-	var path clip.Path
+	var (
+		color = it.theme.Color.Cross
+		path  clip.Path
+	)
 	path.Begin(gtx.Ops)
 	path.MoveTo(f32.Pt(rect.Min.X, rect.Min.Y))
 	path.LineTo(f32.Pt(rect.Max.X, rect.Max.Y))
-	paint.FillShape(gtx.Ops, color, clip.Stroke{
-		Path:  path.End(),
-		Style: clip.StrokeStyle{Width: float32(gtx.Px(unit.Dp(1.8)))},
-	}.Op())
-
+	fillPath(gtx, path.End(), color, unit.Dp(1.8))
 	path.Begin(gtx.Ops)
 	path.MoveTo(f32.Pt(rect.Min.X, rect.Max.Y))
 	path.LineTo(f32.Pt(rect.Max.X, rect.Min.Y))
-	paint.FillShape(gtx.Ops, color, clip.Stroke{
-		Path:  path.End(),
-		Style: clip.StrokeStyle{Width: float32(gtx.Px(unit.Dp(1.8)))},
-	}.Op())
+	fillPath(gtx, path.End(), color, unit.Dp(1.8))
 }
 
 // Buttons.
@@ -383,42 +368,36 @@ func (th *todoTheme) Clickable(click *widget.Clickable, txt string) buttonStyle 
 	}
 }
 
-func (b buttonStyle) Layout(gtx layout.Context) layout.Dimensions {
-	inset := layout.UniformInset(unit.Dp(1))
-	return inset.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		return layout.Stack{}.Layout(gtx,
-			// Handle clicks.
-			layout.Expanded(b.Button.Layout),
-			// Draw text.
-			layout.Stacked(func(gtx layout.Context) layout.Dimensions {
-				return b.theme.Pad.Button.Layout(gtx, b.Label.Layout)
-			}),
-			// Draw border.
-			layout.Expanded(func(gtx layout.Context) layout.Dimensions {
-				if b.Active {
-					return b.drawBorder(gtx, b.Border)
-				} else if b.Button.Hovered() {
-					color := b.Border
-					color.A -= color.A / 3
-					return b.drawBorder(gtx, color)
-				}
-				return layout.Dimensions{}
-			}),
-		)
-	})
+func (b *buttonStyle) Layout(gtx layout.Context) layout.Dimensions {
+	return layout.Stack{}.Layout(gtx,
+		layout.Stacked(func(gtx layout.Context) layout.Dimensions {
+			return b.theme.Pad.Button.Layout(gtx, b.Label.Layout)
+		}),
+		// Draw border & handle clicks.
+		layout.Expanded(b.layoutBorder),
+		layout.Expanded(b.Button.Layout),
+	)
 }
 
-func (b buttonStyle) drawBorder(gtx layout.Context, color color.NRGBA) layout.Dimensions {
+func (b *buttonStyle) layoutBorder(gtx layout.Context) layout.Dimensions {
+	if b.Active {
+		b.drawBorder(gtx, b.Border)
+	} else if b.Button.Hovered() {
+		color := b.Border
+		color.A -= color.A / 3
+		b.drawBorder(gtx, color)
+	}
+	return layout.Dimensions{Size: gtx.Constraints.Min}
+}
+
+func (b *buttonStyle) drawBorder(gtx layout.Context, color color.NRGBA) {
 	var (
 		radius = b.theme.Size.CornerRadius
 		r      = float32(gtx.Px(radius))
-		w      = float32(gtx.Px(unit.Dp(1)))
-		rect   = f32.Rectangle{Min: f32.Pt(0, 0), Max: layout.FPt(gtx.Constraints.Min)}
+		rect   = f32.Rectangle{Max: layout.FPt(gtx.Constraints.Min)}
 		rr     = clip.RRect{Rect: rect, SE: r, SW: r, NE: r, NW: r}
-		border = clip.Stroke{Path: rr.Path(gtx.Ops), Style: clip.StrokeStyle{Width: w}}
 	)
-	paint.FillShape(gtx.Ops, color, border.Op())
-	return layout.Dimensions{Size: gtx.Constraints.Min}
+	fillPath(gtx, rr.Path(gtx.Ops), color, unit.Dp(1))
 }
 
 // showIf draws w if cond is true.
@@ -432,9 +411,8 @@ func showIf(cond bool, gtx layout.Context, w layout.Widget) layout.Dimensions {
 	return dim
 }
 
-// rigidInset makes a rigid flex child with uniform inset.
-func rigidInset(inset unit.Value, w layout.Widget) layout.FlexChild {
-	return layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-		return layout.UniformInset(inset).Layout(gtx, w)
-	})
+// fillPath draws the line of p using the given color and stroke width.
+func fillPath(gtx layout.Context, p clip.PathSpec, color color.NRGBA, width unit.Value) {
+	style := clip.StrokeStyle{Width: float32(gtx.Px(width))}
+	paint.FillShape(gtx.Ops, color, clip.Stroke{Path: p, Style: style}.Op())
 }

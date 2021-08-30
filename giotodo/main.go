@@ -113,9 +113,8 @@ func (ui *todoUI) layoutItems(gtx layout.Context) layout.Dimensions {
 
 	// Draw the list.
 	return ui.list.Layout(gtx, len(items), func(gtx layout.Context, i int) layout.Dimensions {
-		item := items[i]
-		box := ui.theme.Item(item.text, item)
-		return box.Layout(gtx)
+		item := ui.theme.Item(items[i])
+		return item.Layout(gtx)
 	})
 }
 
