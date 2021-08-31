@@ -190,7 +190,7 @@ func main() {
 		title    = app.Title("GioCalc")
 	)
 	go func() {
-		w := app.NewWindow(statusBg, sysBg, size, title)
+		w := app.NewWindow(statusBg, sysBg, size, title, app.PortraitOrientation)
 		w.Option(app.MaxSize(designWidth, designHeight))
 		w.Option(app.MinSize(designWidth, designHeight))
 
