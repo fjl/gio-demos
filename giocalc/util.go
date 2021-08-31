@@ -2,6 +2,7 @@ package main
 
 import (
 	"image"
+	"math"
 
 	"gioui.org/f32"
 	"gioui.org/layout"
@@ -61,13 +62,26 @@ func shrinkToFit(gtx layout.Context, w layout.Widget) layout.Dimensions {
 	dim := w(wide)
 	call := macro.Stop()
 
-	// Scale down if it exceeds the available space.
+	// If it's too wide, push scale transform before drawing.
 	if dim.Size.X > gtx.Constraints.Max.X {
-		scale := float32(gtx.Constraints.Max.X) / float32(dim.Size.X)
+		maxWidth := float32(gtx.Constraints.Max.X)
+		scale := maxWidth / float32(dim.Size.X)
 		origin := f32.Pt(0, float32(gtx.Constraints.Max.Y))
 		tr := f32.Affine2D{}.Scale(origin, f32.Pt(scale, scale))
 		op.Affine(tr).Add(gtx.Ops)
+		// Scale dim, too.
+		dim.Size = ptf(tr.Transform(layout.FPt(dim.Size)))
 	}
+	// Draw w.
 	call.Add(gtx.Ops)
-	return layout.Dimensions{Size: gtx.Constraints.Max}
+	return dim
+}
+
+// ptf converts f32.Point to image.Point.
+// It's kind of the inverse of layout.FPt.
+func ptf(pt f32.Point) image.Point {
+	return image.Point{
+		X: int(math.Ceil(float64(pt.X))),
+		Y: int(math.Ceil(float64(pt.Y))),
+	}
 }
