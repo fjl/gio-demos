@@ -129,7 +129,11 @@ func (ui *todoUI) layoutStatusBar(gtx layout.Context) layout.Dimensions {
 				label.Text = ui.todos.lastError.Error()
 				label.Color = ui.theme.Color.Error
 			} else {
-				label.Text = fmt.Sprintf("%d to do.", count)
+				if ui.filter == filterCompleted {
+					label.Text = fmt.Sprintf("%d done.", doneCount)
+				} else {
+					label.Text = fmt.Sprintf("%d to do.", count)
+				}
 			}
 			label.Alignment = text.Start
 			return ui.theme.Pad.Button.Layout(gtx, label.Layout)
@@ -137,7 +141,7 @@ func (ui *todoUI) layoutStatusBar(gtx layout.Context) layout.Dimensions {
 		layout.Flexed(1.0, func(gtx layout.Context) layout.Dimensions {
 			all := ui.theme.StatusButton(&ui.all, "All", ui.filter == filterAll)
 			active := ui.theme.StatusButton(&ui.active, "Active", ui.filter == filterActive)
-			completed := ui.theme.StatusButton(&ui.completed, "Completed", ui.filter == filterCompleted)
+			completed := ui.theme.StatusButton(&ui.completed, "Done", ui.filter == filterCompleted)
 			flex := layout.Flex{Alignment: layout.Baseline, Spacing: layout.SpaceSides}
 			return flex.Layout(gtx,
 				layout.Rigid(all.Layout),
