@@ -177,15 +177,15 @@ func (b *button) Layout(gtx layout.Context) layout.Dimensions {
 
 func main() {
 	var (
-		min      = app.MinSize(designWidth, designHeight)
-		max      = app.MaxSize(designWidth, designHeight)
 		size     = app.Size(designWidth, designHeight)
 		statusBg = app.StatusColor(backgroundColor)
 		sysBg    = app.NavigationColor(backgroundColor)
 		title    = app.Title("GioCalc")
 	)
 	go func() {
-		w := app.NewWindow(statusBg, sysBg, min, max, size, title)
+		w := app.NewWindow(statusBg, sysBg, size, title)
+		w.Option(app.MaxSize(designWidth, designHeight))
+		w.Option(app.MinSize(designWidth, designHeight))
 		if err := loop(w); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
