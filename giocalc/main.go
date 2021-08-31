@@ -7,12 +7,14 @@ import (
 	"runtime"
 
 	"gioui.org/app"
+	"gioui.org/f32"
 	"gioui.org/font/gofont"
 	"gioui.org/io/clipboard"
 	"gioui.org/io/key"
 	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
+	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/text"
 	"gioui.org/unit"
@@ -21,15 +23,18 @@ import (
 )
 
 var (
-	designWidth     = unit.Dp(270)
-	designHeight    = unit.Dp(345)
-	digitColor      = color.NRGBA{90, 90, 90, 255}
-	specialColor    = color.NRGBA{70, 70, 70, 255}
-	opColor         = color.NRGBA{122, 90, 90, 255}
-	activeOpColor   = color.NRGBA{160, 90, 90, 255}
-	backgroundColor = color.NRGBA{50, 50, 50, 255}
-	resultColor     = color.NRGBA{255, 255, 255, 255}
-	controlInset    = unit.Dp(6)
+	digitColor       = color.NRGBA{90, 90, 90, 255}
+	specialColor     = color.NRGBA{70, 70, 70, 255}
+	opColor          = color.NRGBA{122, 90, 90, 255}
+	activeOpColor    = color.NRGBA{160, 90, 90, 255}
+	backgroundColor  = color.NRGBA{50, 50, 50, 255}
+	resultColor      = color.NRGBA{255, 255, 255, 255}
+	resultBackground = color.NRGBA{35, 35, 35, 255}
+
+	designWidth  = unit.Dp(270)
+	designHeight = unit.Dp(345)
+	controlInset = unit.Dp(6)
+	cornerRadius = unit.Dp(3.5)
 )
 
 // calcUI is the user interface of the calculator.
@@ -37,6 +42,9 @@ type calcUI struct {
 	calc    calculator
 	theme   *material.Theme
 	buttons [5][4]*button
+
+	cornerRadius unit.Value
+	gridSpacing  unit.Value
 }
 
 func newUI(theme *material.Theme) *calcUI {
@@ -57,7 +65,7 @@ func newUI(theme *material.Theme) *calcUI {
 
 // digit creates a digit button.
 func (ui *calcUI) digit(input string) *button {
-	b := newButton(&ui.calc, ui.theme, input, digitColor)
+	b := newButton(&ui.calc, input, digitColor)
 	b.action = func() { ui.calc.digit(input) }
 	b.op = opNop
 	return b
@@ -65,7 +73,7 @@ func (ui *calcUI) digit(input string) *button {
 
 // op creates an operation button.
 func (ui *calcUI) op(op calcOp) *button {
-	b := newButton(&ui.calc, ui.theme, op.String(), opColor)
+	b := newButton(&ui.calc, op.String(), opColor)
 	b.action = func() { ui.calc.run(op) }
 	b.op = op
 	return b
@@ -73,7 +81,7 @@ func (ui *calcUI) op(op calcOp) *button {
 
 // special creates a special operation button.
 func (ui *calcUI) special(name string, fn func()) *button {
-	b := newButton(&ui.calc, ui.theme, name, specialColor)
+	b := newButton(&ui.calc, name, specialColor)
 	b.action = fn
 	b.op = opNop
 	return b
@@ -81,20 +89,37 @@ func (ui *calcUI) special(name string, fn func()) *button {
 
 // Layout draws the UI.
 func (ui *calcUI) Layout(gtx layout.Context) layout.Dimensions {
+	// Adapt design for screen size.
+	scaleFactor := float32(gtx.Constraints.Max.X) / float32(gtx.Px(designWidth))
+	ui.cornerRadius = cornerRadius.Scale(scaleFactor)
+	ui.gridSpacing = controlInset.Scale(scaleFactor)
+
 	inset := layout.UniformInset(controlInset)
-	flex := layout.Flex{Axis: layout.Vertical, Spacing: layout.SpaceStart}
-	return flex.Layout(gtx,
-		layout.Flexed(30, func(gtx layout.Context) layout.Dimensions {
-			return inset.Layout(gtx, ui.layoutResult)
-		}),
-		layout.Flexed(70, func(gtx layout.Context) layout.Dimensions {
-			return inset.Layout(gtx, ui.layoutButtons)
-		}),
-	)
+	return inset.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		flex := layout.Flex{Axis: layout.Vertical, Spacing: layout.SpaceStart}
+		return flex.Layout(gtx,
+			layout.Flexed(20, func(gtx layout.Context) layout.Dimensions {
+				return inset.Layout(gtx, ui.layoutResult)
+			}),
+			layout.Flexed(70, func(gtx layout.Context) layout.Dimensions {
+				return inset.Layout(gtx, ui.layoutButtons)
+			}),
+		)
+	})
 }
 
 func (ui *calcUI) layoutResult(gtx layout.Context) layout.Dimensions {
-	fontSize := unit.Px(float32(gtx.Constraints.Max.Y))
+	rect := f32.Rectangle{Max: layout.FPt(gtx.Constraints.Max)}
+	rr := clip.UniformRRect(rect, float32(gtx.Px(ui.cornerRadius)))
+	paint.FillShape(gtx.Ops, resultBackground, rr.Op(gtx.Ops))
+
+	inset := layout.UniformInset(controlInset)
+	return inset.Layout(gtx, ui.layoutResultText)
+}
+
+func (ui *calcUI) layoutResultText(gtx layout.Context) layout.Dimensions {
+	// Scale font based on height.
+	fontSize := unit.Px(float32(gtx.Constraints.Max.Y) / 1.1)
 	l := material.Label(ui.theme, fontSize, ui.calc.text())
 	l.Color = resultColor
 	l.Alignment = text.End
@@ -102,18 +127,36 @@ func (ui *calcUI) layoutResult(gtx layout.Context) layout.Dimensions {
 }
 
 func (ui *calcUI) layoutButtons(gtx layout.Context) layout.Dimensions {
-	scale := float32(gtx.Constraints.Max.X) / float32(gtx.Px(designWidth))
 	g := grid{
 		rows:    len(ui.buttons),
 		cols:    len(ui.buttons[0]),
-		spacing: controlInset.Scale(scale),
+		spacing: ui.gridSpacing,
 	}
 	return g.layout(gtx, func(row, col int, gtx layout.Context) layout.Dimensions {
 		if b := ui.buttons[row][col]; b != nil {
-			return b.Layout(gtx)
+			return ui.layoutButton(gtx, b)
 		}
 		return layout.Dimensions{}
 	})
+}
+
+func (ui *calcUI) layoutButton(gtx layout.Context, b *button) layout.Dimensions {
+	// Check for mouse events.
+	b.clicker.Layout(gtx)
+	if b.clicker.Clicked() && b.action != nil {
+		b.action()
+	}
+
+	// Draw the button.
+	style := material.Button(ui.theme, &b.clicker, b.text)
+	style.Background = b.color
+	style.Inset = layout.Inset{}
+	style.TextSize = unit.Px(float32(gtx.Constraints.Max.Y) / 2.2)
+	style.CornerRadius = ui.cornerRadius
+	if b.calc.lastOp == b.op {
+		style.Background = activeOpColor
+	}
+	return style.Layout(gtx)
 }
 
 // handleKey handles a key event.
@@ -149,36 +192,17 @@ func (ui *calcUI) handleKey(e key.Event) {
 
 // button is a clickable button.
 type button struct {
-	calc    *calculator
+	calc   *calculator
+	op     calcOp
+	text   string
+	action func()
+
+	color   color.NRGBA
 	clicker widget.Clickable
-	style   material.ButtonStyle
-	action  func()
-	op      calcOp
 }
 
-func newButton(calc *calculator, theme *material.Theme, text string, color color.NRGBA) *button {
-	b := &button{calc: calc}
-	b.style = material.Button(theme, &b.clicker, text)
-	b.style.Background = color
-	return b
-}
-
-// Layout draws the button.
-func (b *button) Layout(gtx layout.Context) layout.Dimensions {
-	// Check for mouse events.
-	b.clicker.Layout(gtx)
-	if b.clicker.Clicked() && b.action != nil {
-		b.action()
-	}
-	// Draw the button.
-	style := b.style
-	style.Inset = layout.Inset{}
-	style.TextSize = unit.Sp(float32(gtx.Constraints.Max.Y) / 5.5)
-	style.CornerRadius = unit.Sp(float32(gtx.Constraints.Max.Y) / 12)
-	if b.calc.lastOp == b.op {
-		style.Background = activeOpColor
-	}
-	return style.Layout(gtx)
+func newButton(calc *calculator, text string, color color.NRGBA) *button {
+	return &button{calc: calc, text: text, color: color}
 }
 
 func main() {
