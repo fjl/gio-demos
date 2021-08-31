@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 )
 
 type ID string
@@ -187,6 +188,7 @@ func (s *Store) initFile() error {
 
 // replay loads events from the data file and sends them.
 func (s *Store) replay() {
+	begin := time.Now()
 	count := 0
 	for {
 		ev, err := readEvent(s.reader)
@@ -200,5 +202,5 @@ func (s *Store) replay() {
 		count++
 		s.enqueueOutputEvent(ev)
 	}
-	log.Println("replay done:", count, "items")
+	log.Printf("replay done: %d items (%v)", count, time.Since(begin))
 }
