@@ -195,11 +195,13 @@ func main() {
 	var (
 		min = app.MinSize(designWidth, designHeight)
 		// max   = app.MaxSize(designWidth, designHeight)
-		size  = app.Size(designWidth, designHeight)
-		title = app.Title("GioCalc")
+		size     = app.Size(designWidth, designHeight)
+		statusBg = app.StatusColor(backgroundColor)
+		sysBg    = app.NavigationColor(backgroundColor)
+		title    = app.Title("GioCalc")
 	)
 	go func() {
-		w := app.NewWindow(min, size, title)
+		w := app.NewWindow(statusBg, sysBg, min, size, title)
 		if err := loop(w); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
