@@ -2,13 +2,11 @@ package main
 
 import (
 	"fmt"
-	"image"
 	"image/color"
 	"os"
 	"runtime"
 
 	"gioui.org/app"
-	"gioui.org/f32"
 	"gioui.org/font/gofont"
 	"gioui.org/io/clipboard"
 	"gioui.org/io/key"
@@ -24,7 +22,7 @@ import (
 
 var (
 	designWidth     = unit.Dp(270)
-	designHeight    = unit.Dp(286)
+	designHeight    = unit.Dp(345)
 	digitColor      = color.NRGBA{90, 90, 90, 255}
 	specialColor    = color.NRGBA{70, 70, 70, 255}
 	opColor         = color.NRGBA{122, 90, 90, 255}
@@ -82,31 +80,15 @@ func (ui *calcUI) special(name string, fn func()) *button {
 	return b
 }
 
+// Layout draws the UI.
 func (ui *calcUI) Layout(gtx layout.Context) layout.Dimensions {
-	scale := float32(gtx.Constraints.Max.X) / float32(gtx.Px(designWidth))
-	tr := f32.Affine2D{}.Scale(f32.Pt(0, 0), f32.Pt(scale, scale))
-	op.Affine(tr).Add(gtx.Ops)
-	gtx.Constraints.Min.X = gtx.Px(designWidth)
-	gtx.Constraints.Max.X = gtx.Px(designWidth)
-	gtx.Constraints.Max.Y = int(float32(gtx.Constraints.Max.Y)/scale + 0.5)
-	height := float32(gtx.Constraints.Max.Y)
-	inset := layout.Inset{}
-	if height > float32(gtx.Px(designHeight)) {
-		inset.Top = unit.Px(height - float32(gtx.Px(designHeight)))
-	}
-	return inset.Layout(gtx, ui.layout)
-}
-
-// layout draws the UI.
-func (ui *calcUI) layout(gtx layout.Context) layout.Dimensions {
-	// Draw the result and buttons.
 	inset := layout.UniformInset(controlInset)
-	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			gtx.Constraints = layout.Exact(image.Pt(gtx.Constraints.Max.X, gtx.Px(resultHeight)))
+	flex := layout.Flex{Axis: layout.Vertical, Spacing: layout.SpaceStart}
+	return flex.Layout(gtx,
+		layout.Flexed(0.4, func(gtx layout.Context) layout.Dimensions {
 			return inset.Layout(gtx, ui.layoutResult)
 		}),
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+		layout.Flexed(0.6, func(gtx layout.Context) layout.Dimensions {
 			return inset.Layout(gtx, ui.layoutButtons)
 		}),
 	)
@@ -193,15 +175,15 @@ func (b *button) Layout(gtx layout.Context) layout.Dimensions {
 
 func main() {
 	var (
-		min = app.MinSize(designWidth, designHeight)
-		// max   = app.MaxSize(designWidth, designHeight)
+		min      = app.MinSize(designWidth, designHeight)
+		max      = app.MaxSize(designWidth, designHeight)
 		size     = app.Size(designWidth, designHeight)
 		statusBg = app.StatusColor(backgroundColor)
 		sysBg    = app.NavigationColor(backgroundColor)
 		title    = app.Title("GioCalc")
 	)
 	go func() {
-		w := app.NewWindow(statusBg, sysBg, min, size, title)
+		w := app.NewWindow(statusBg, sysBg, min, max, size, title)
 		if err := loop(w); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
