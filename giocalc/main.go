@@ -224,13 +224,7 @@ func loop(w *app.Window) error {
 		case system.FrameEvent:
 			gtx := layout.NewContext(&ops, e)
 			paint.Fill(gtx.Ops, backgroundColor)
-			inset := layout.Inset{
-				Top:    e.Insets.Top,
-				Bottom: e.Insets.Bottom,
-				Left:   e.Insets.Left,
-				Right:  e.Insets.Right,
-			}
-			inset.Layout(gtx, ui.Layout)
+			ui.Layout(gtx)
 			e.Frame(gtx.Ops)
 		case key.Event:
 			switch {
