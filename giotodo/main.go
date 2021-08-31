@@ -195,7 +195,7 @@ func loop(w *app.Window, theme *todoTheme) error {
 	for {
 		select {
 		case e := <-store.Events():
-			ui.todos.handleStoreEvent(e)
+			model.handleStoreEvent(e)
 			w.Invalidate()
 		case e := <-w.Events():
 			switch e := e.(type) {
