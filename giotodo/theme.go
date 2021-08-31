@@ -36,7 +36,9 @@ type todoTheme struct {
 		StatusText   unit.Value
 		CornerRadius unit.Value
 		Checkbox     unit.Value
-		MainWidth    unit.Value
+		MinWidth     unit.Value
+		MaxWidth     unit.Value
+		PrefWidth    unit.Value
 	}
 	Pad struct {
 		Main   layout.Inset
@@ -73,7 +75,9 @@ func newTodoTheme(fonts []text.FontFace) *todoTheme {
 	th.Size.StatusText = unit.Dp(14)
 	th.Size.CornerRadius = unit.Dp(3)
 	th.Size.Checkbox = unit.Dp(30)
-	th.Size.MainWidth = unit.Dp(550)
+	th.Size.MinWidth = unit.Dp(350)
+	th.Size.PrefWidth = unit.Dp(550)
+	th.Size.MaxWidth = unit.Dp(700)
 
 	// Padding.
 	th.Pad.Main = layout.UniformInset(unit.Dp(12))

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"image"
 	"log"
 	"os"
 	"path/filepath"
@@ -14,7 +13,6 @@ import (
 	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
-	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/text"
 	"gioui.org/unit"
@@ -75,10 +73,6 @@ func (ui *todoUI) Layout(gtx layout.Context) layout.Dimensions {
 	}
 
 	// Draw.
-	gtx.Constraints.Min.X = gtx.Px(ui.theme.Size.MainWidth)
-	gtx.Constraints.Max.X = gtx.Px(ui.theme.Size.MainWidth)
-	rect := clip.Rect{Max: gtx.Constraints.Max}
-	paint.FillShape(gtx.Ops, ui.theme.Color.MainPanel, rect.Op())
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return ui.theme.Pad.Main.Layout(gtx, ui.layoutInput)
@@ -124,41 +118,39 @@ func (ui *todoUI) layoutStatusBar(gtx layout.Context) layout.Dimensions {
 	doneCount := ui.todos.doneCount()
 	count := ui.todos.len() - doneCount
 
-	dim := layout.SW.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		label := ui.theme.StatusLabel("")
-		if ui.todos.lastError != nil {
-			label.Text = ui.todos.lastError.Error()
-			label.Color = ui.theme.Color.Error
-		} else {
-			if count == 1 {
-				label.Text = "1 item left"
-			} else {
-				label.Text = fmt.Sprintf("%d items left", count)
-			}
-		}
-		label.Alignment = text.Start
-		return ui.theme.Pad.Button.Layout(gtx, label.Layout)
-	})
-	layout.S.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		all := ui.theme.StatusButton(&ui.all, "All", ui.filter == filterAll)
-		active := ui.theme.StatusButton(&ui.active, "Active", ui.filter == filterActive)
-		completed := ui.theme.StatusButton(&ui.completed, "Completed", ui.filter == filterCompleted)
-		flex := layout.Flex{Alignment: layout.Baseline, Spacing: layout.SpaceEvenly}
-		return flex.Layout(gtx,
-			layout.Rigid(all.Layout),
-			layout.Rigid(active.Layout),
-			layout.Rigid(completed.Layout),
-		)
-	})
-	layout.SE.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		clear := ui.theme.Clickable(&ui.clear, "Clear completed")
-		clear.Label.Alignment = text.End
-		return showIf(doneCount > 0, gtx, clear.Layout)
-	})
-	return layout.Dimensions{
-		Size:     image.Pt(gtx.Constraints.Max.X, dim.Size.Y),
-		Baseline: dim.Baseline,
+	flex := layout.Flex{
+		Axis:    layout.Horizontal,
+		Spacing: layout.SpaceBetween,
 	}
+	return flex.Layout(gtx,
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			label := ui.theme.StatusLabel("")
+			if ui.todos.lastError != nil {
+				label.Text = ui.todos.lastError.Error()
+				label.Color = ui.theme.Color.Error
+			} else {
+				label.Text = fmt.Sprintf("%d to do.", count)
+			}
+			label.Alignment = text.Start
+			return ui.theme.Pad.Button.Layout(gtx, label.Layout)
+		}),
+		layout.Flexed(1.0, func(gtx layout.Context) layout.Dimensions {
+			all := ui.theme.StatusButton(&ui.all, "All", ui.filter == filterAll)
+			active := ui.theme.StatusButton(&ui.active, "Active", ui.filter == filterActive)
+			completed := ui.theme.StatusButton(&ui.completed, "Completed", ui.filter == filterCompleted)
+			flex := layout.Flex{Alignment: layout.Baseline, Spacing: layout.SpaceSides}
+			return flex.Layout(gtx,
+				layout.Rigid(all.Layout),
+				layout.Rigid(active.Layout),
+				layout.Rigid(completed.Layout),
+			)
+		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			clear := ui.theme.Clickable(&ui.clear, "Clear")
+			clear.Label.Alignment = text.End
+			return showIf(doneCount > 0, gtx, clear.Layout)
+		}),
+	)
 }
 
 // submit is called when a todo item is submitted.
@@ -172,8 +164,9 @@ func main() {
 		var (
 			theme  = newTodoTheme(gofont.Collection())
 			title  = app.Title("GioTodo")
-			min    = app.MinSize(theme.Size.MainWidth, unit.Dp(200))
-			window = app.NewWindow(min, title)
+			min    = app.MinSize(theme.Size.MinWidth, unit.Dp(250))
+			size   = app.Size(theme.Size.PrefWidth, unit.Dp(600))
+			window = app.NewWindow(min, size, title)
 		)
 		if err := loop(window, theme); err != nil {
 			log.Fatal(err)
@@ -208,7 +201,7 @@ func loop(w *app.Window, theme *todoTheme) error {
 				return e.Err
 			case system.FrameEvent:
 				gtx := layout.NewContext(&ops, e)
-				paint.Fill(gtx.Ops, ui.theme.Color.Background)
+				paint.Fill(gtx.Ops, ui.theme.Color.MainPanel)
 				sysInset := layout.Inset{
 					Top:    e.Insets.Top,
 					Bottom: e.Insets.Bottom,
