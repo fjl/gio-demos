@@ -30,7 +30,6 @@ var (
 	backgroundColor = color.NRGBA{50, 50, 50, 255}
 	resultColor     = color.NRGBA{255, 255, 255, 255}
 	controlInset    = unit.Dp(6)
-	resultHeight    = unit.Dp(80)
 )
 
 // calcUI is the user interface of the calculator.
