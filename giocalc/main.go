@@ -85,24 +85,30 @@ func (ui *calcUI) Layout(gtx layout.Context) layout.Dimensions {
 	inset := layout.UniformInset(controlInset)
 	flex := layout.Flex{Axis: layout.Vertical, Spacing: layout.SpaceStart}
 	return flex.Layout(gtx,
-		layout.Flexed(0.4, func(gtx layout.Context) layout.Dimensions {
+		layout.Flexed(30, func(gtx layout.Context) layout.Dimensions {
 			return inset.Layout(gtx, ui.layoutResult)
 		}),
-		layout.Flexed(0.6, func(gtx layout.Context) layout.Dimensions {
+		layout.Flexed(70, func(gtx layout.Context) layout.Dimensions {
 			return inset.Layout(gtx, ui.layoutButtons)
 		}),
 	)
 }
 
 func (ui *calcUI) layoutResult(gtx layout.Context) layout.Dimensions {
-	l := material.Label(ui.theme, unit.Px(float32(gtx.Constraints.Max.Y)), ui.calc.text())
+	fontSize := unit.Px(float32(gtx.Constraints.Max.Y))
+	l := material.Label(ui.theme, fontSize, ui.calc.text())
 	l.Color = resultColor
 	l.Alignment = text.End
 	return shrinkToFit(gtx, l.Layout)
 }
 
 func (ui *calcUI) layoutButtons(gtx layout.Context) layout.Dimensions {
-	g := grid{rows: len(ui.buttons), cols: len(ui.buttons[0]), spacing: controlInset}
+	scale := float32(gtx.Constraints.Max.X) / float32(gtx.Px(designWidth))
+	g := grid{
+		rows:    len(ui.buttons),
+		cols:    len(ui.buttons[0]),
+		spacing: controlInset.Scale(scale),
+	}
 	return g.layout(gtx, func(row, col int, gtx layout.Context) layout.Dimensions {
 		if b := ui.buttons[row][col]; b != nil {
 			return b.Layout(gtx)
@@ -169,6 +175,7 @@ func (b *button) Layout(gtx layout.Context) layout.Dimensions {
 	style := b.style
 	style.Inset = layout.Inset{}
 	style.TextSize = unit.Sp(float32(gtx.Constraints.Max.Y) / 5.5)
+	style.CornerRadius = unit.Sp(float32(gtx.Constraints.Max.Y) / 12)
 	if b.calc.lastOp == b.op {
 		style.Background = activeOpColor
 	}
@@ -186,6 +193,7 @@ func main() {
 		w := app.NewWindow(statusBg, sysBg, size, title)
 		w.Option(app.MaxSize(designWidth, designHeight))
 		w.Option(app.MinSize(designWidth, designHeight))
+
 		if err := loop(w); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
