@@ -10,6 +10,7 @@ import (
 
 	"gioui.org/app"
 	"gioui.org/font/gofont"
+	"gioui.org/io/key"
 	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
@@ -40,7 +41,7 @@ func newTodoUI(theme *todoTheme, model *todoModel) *todoUI {
 		todos:     model,
 		filter:    filterAll,
 		theme:     theme,
-		mainInput: widget.Editor{SingleLine: true, Submit: true},
+		mainInput: widget.Editor{Submit: true, SingleLine: true, InputHint: key.HintText},
 		list:      layout.List{Axis: layout.Vertical},
 	}
 	ui.mainInput.Focus()
