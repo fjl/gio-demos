@@ -132,14 +132,12 @@ func (th *todoTheme) ItemLabel(txt string) labelStyle {
 	}
 }
 
+// Layout draws the label.
 func (l *labelStyle) Layout(gtx layout.Context) layout.Dimensions {
-	gtx.Constraints.Min = image.Point{}
-
-	// Draw text.
 	paint.ColorOp{Color: l.Color}.Add(gtx.Ops)
 	dim := widget.Label{MaxLines: 1}.Layout(gtx, l.theme.Shaper, l.Font, l.TextSize, l.Text)
 
-	// Draw strike.
+	// Draw strikethrough.
 	if l.StrikeThrough {
 		h := dim.Size.Y / 2
 		rect := clip.Rect(image.Rect(0, h, dim.Size.X, h+gtx.Px(unit.Dp(2))))
