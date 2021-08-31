@@ -203,6 +203,10 @@ func loop(w *app.Window, theme *todoTheme) error {
 			w.Invalidate()
 		case e := <-w.Events():
 			switch e := e.(type) {
+			case system.StageEvent:
+				if e.Stage == system.StagePaused {
+					store.Persist()
+				}
 			case system.DestroyEvent:
 				return e.Err
 			case system.FrameEvent:
