@@ -384,10 +384,6 @@ func (b *buttonStyle) Layout(gtx layout.Context) layout.Dimensions {
 func (b *buttonStyle) layoutBorder(gtx layout.Context) layout.Dimensions {
 	if b.Active {
 		b.drawBorder(gtx, b.Border)
-	} else if b.Button.Hovered() {
-		color := b.Border
-		color.A -= color.A / 3
-		b.drawBorder(gtx, color)
 	}
 	return layout.Dimensions{Size: gtx.Constraints.Min}
 }
