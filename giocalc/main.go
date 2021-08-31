@@ -167,6 +167,8 @@ func (b *button) Layout(gtx layout.Context) layout.Dimensions {
 	}
 	// Draw the button.
 	style := b.style
+	style.Inset = layout.Inset{}
+	style.TextSize = unit.Sp(float32(gtx.Constraints.Max.Y) / 5.5)
 	if b.calc.lastOp == b.op {
 		style.Background = activeOpColor
 	}
