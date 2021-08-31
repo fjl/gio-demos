@@ -162,11 +162,13 @@ func (ui *todoUI) submit(line string) {
 func main() {
 	go func() {
 		var (
-			theme  = newTodoTheme(gofont.Collection())
-			title  = app.Title("GioTodo")
-			min    = app.MinSize(theme.Size.MinWidth, unit.Dp(250))
-			size   = app.Size(theme.Size.PrefWidth, unit.Dp(600))
-			window = app.NewWindow(min, size, title)
+			theme    = newTodoTheme(gofont.Collection())
+			title    = app.Title("GioTodo")
+			min      = app.MinSize(theme.Size.MinWidth, unit.Dp(250))
+			size     = app.Size(theme.Size.PrefWidth, unit.Dp(600))
+			statusBg = app.StatusColor(theme.Color.Background)
+			sysBg    = app.NavigationColor(theme.Color.Background)
+			window   = app.NewWindow(statusBg, sysBg, min, size, title)
 		)
 		if err := loop(window, theme); err != nil {
 			log.Fatal(err)
