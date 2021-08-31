@@ -202,15 +202,7 @@ func loop(w *app.Window, theme *todoTheme) error {
 			case system.FrameEvent:
 				gtx := layout.NewContext(&ops, e)
 				paint.Fill(gtx.Ops, ui.theme.Color.MainPanel)
-				sysInset := layout.Inset{
-					Top:    e.Insets.Top,
-					Bottom: e.Insets.Bottom,
-					Left:   e.Insets.Left,
-					Right:  e.Insets.Right,
-				}
-				sysInset.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return layout.Center.Layout(gtx, ui.Layout)
-				})
+				ui.Layout(gtx)
 				e.Frame(gtx.Ops)
 			}
 		}
