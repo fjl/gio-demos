@@ -152,5 +152,5 @@ func (c *calculator) text() string {
 	if len(c.input) > 0 {
 		return c.input
 	}
-	return strconv.FormatFloat(c.top, 'f', -1, 64)
+	return strconv.FormatFloat(c.top, 'g', 12, 64)
 }
