@@ -211,9 +211,10 @@ func main() {
 		statusBg = app.StatusColor(backgroundColor)
 		sysBg    = app.NavigationColor(backgroundColor)
 		title    = app.Title("GioCalc")
+		portrait = app.PortraitOrientation.Option()
 	)
 	go func() {
-		w := app.NewWindow(statusBg, sysBg, size, title, app.PortraitOrientation)
+		w := app.NewWindow(statusBg, sysBg, size, title, portrait)
 		w.Option(app.MaxSize(designWidth, designHeight))
 		w.Option(app.MinSize(designWidth, designHeight))
 
