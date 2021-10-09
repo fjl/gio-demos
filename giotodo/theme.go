@@ -164,8 +164,6 @@ func (th *todoTheme) Editor(ed *widget.Editor, hint string) editorStyle {
 }
 
 func (e *editorStyle) Layout(gtx layout.Context) layout.Dimensions {
-	defer op.Save(gtx.Ops).Load()
-
 	// Draw label.
 	macro := op.Record(gtx.Ops)
 	paint.ColorOp{Color: e.theme.Color.HintText}.Add(gtx.Ops)
@@ -411,6 +409,6 @@ func showIf(cond bool, gtx layout.Context, w layout.Widget) layout.Dimensions {
 
 // fillPath draws the line of p using the given color and stroke width.
 func fillPath(gtx layout.Context, p clip.PathSpec, color color.NRGBA, width unit.Value) {
-	style := clip.StrokeStyle{Width: float32(gtx.Px(width))}
-	paint.FillShape(gtx.Ops, color, clip.Stroke{Path: p, Style: style}.Op())
+	w := float32(gtx.Px(width))
+	paint.FillShape(gtx.Ops, color, clip.Stroke{Path: p, Width: w}.Op())
 }

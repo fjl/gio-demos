@@ -18,9 +18,7 @@ type grid struct {
 
 type gridWidget func(int, int, layout.Context) layout.Dimensions
 
-// layout places the grid elements by calling widget for each row/column. This only really
-// works well if spacing is non-zero because the cells are placed at integer coordinates.
-// The grid will look slighly uneven with too little spacing.
+// layout places the grid elements by calling widget for each row/column.
 func (g *grid) layout(gtx layout.Context, widget gridWidget) layout.Dimensions {
 	if g.cols == 0 || g.rows == 0 {
 		return layout.Dimensions{}
@@ -38,14 +36,13 @@ func (g *grid) layout(gtx layout.Context, widget gridWidget) layout.Dimensions {
 	gtx.Constraints = layout.Exact(cellSize)
 	for row := 0; row < g.rows; row++ {
 		for col := 0; col < g.cols; col++ {
-			pos := image.Point{
-				X: int(float32(col)*w + float32(col)*space),
-				Y: int(float32(row)*h + float32(row)*space),
+			pos := f32.Point{
+				X: float32(col)*w + float32(col)*space,
+				Y: float32(row)*h + float32(row)*space,
 			}
-			stk := op.Save(gtx.Ops)
-			op.Offset(layout.FPt(pos)).Add(gtx.Ops)
+			offset := op.Offset(pos).Push(gtx.Ops)
 			widget(row, col, gtx)
-			stk.Load()
+			offset.Pop()
 		}
 	}
 	return layout.Dimensions{Size: size}
