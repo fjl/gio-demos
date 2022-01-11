@@ -169,11 +169,11 @@ func main() {
 			theme    = newTodoTheme(gofont.Collection())
 			title    = app.Title("GioTodo")
 			size     = app.Size(theme.Size.PrefWidth, unit.Dp(600))
+			minSize  = app.MinSize(theme.Size.MinWidth, unit.Dp(250))
 			statusBg = app.StatusColor(theme.Color.Background)
 			navBg    = app.NavigationColor(theme.Color.Background)
-			window   = app.NewWindow(title, size, statusBg, navBg)
+			window   = app.NewWindow(title, size, minSize, statusBg, navBg)
 		)
-		window.Option(app.MinSize(theme.Size.MinWidth, unit.Dp(250)))
 
 		if err := loop(window, theme); err != nil {
 			log.Fatal(err)
@@ -189,14 +189,15 @@ func loop(w *app.Window, theme *todoTheme) error {
 	if err != nil {
 		return err
 	}
-	store := todostore.NewStore(filepath.Join(datadir, "giotodo"))
-	defer store.Close()
 
 	var (
+		store = todostore.NewStore(filepath.Join(datadir, "giotodo"))
 		model = newTodoModel(store)
 		ui    = newTodoUI(theme, model)
 		ops   op.Ops
 	)
+	defer store.Close()
+
 	for {
 		select {
 		case e := <-store.Events():

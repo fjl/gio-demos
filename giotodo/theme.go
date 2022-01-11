@@ -178,7 +178,7 @@ func (e *editorStyle) Layout(gtx layout.Context) layout.Dimensions {
 	}
 
 	// Draw editor.
-	dims = e.Editor.Layout(gtx, e.theme.Shaper, e.theme.Font.Item, e.theme.Size.ItemText)
+	dims = e.Editor.Layout(gtx, e.theme.Shaper, e.theme.Font.Item, e.theme.Size.ItemText, nil)
 	if e.Editor.SelectionLen() > 0 {
 		paint.ColorOp{Color: e.theme.Color.Selection}.Add(gtx.Ops)
 		e.Editor.PaintSelection(gtx)
@@ -225,30 +225,27 @@ func (it *itemStyle) Layout(gtx layout.Context) layout.Dimensions {
 	return flex.Layout(gtx,
 		// Checkbox.
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			gtx.Constraints = cbconst     // Constant size.
-			it.item.done.Layout(gtx)      // Handle clicks.
-			return it.layoutCheckbox(gtx) // Draw.
+			gtx.Constraints = cbconst // Constant size.
+			return it.item.done.Layout(gtx, it.layoutCheckbox)
 		}),
 		// Item text.
 		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 			// Stack the text click here to track hovering over the text.
-			return layout.Stack{}.Layout(gtx,
-				layout.Stacked(it.layoutText),
-				layout.Expanded(it.item.textClick.Layout),
-			)
+			return it.item.textClick.Layout(gtx, it.layoutText)
 		}),
 		// Remove button.
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			gtx.Constraints = cbconst  // Constant size (same as checkbox).
-			it.item.remove.Layout(gtx) // Handle clicks.
-			// Draw cross when hovering over the item.
-			hovered := it.item.textClick.Hovered() || it.item.remove.Hovered()
-			dim := layout.Dimensions{Size: cbconst.Max}
-			if hovered {
-				inset := layout.UniformInset(unit.Dp(10))
-				dim = inset.Layout(gtx, it.layoutCross)
-			}
-			return dim
+			gtx.Constraints = cbconst // Constant size (same as checkbox).
+			return it.item.remove.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				// Draw cross when hovering over the item.
+				hovered := it.item.textClick.Hovered() || it.item.remove.Hovered()
+				dim := layout.Dimensions{Size: cbconst.Max}
+				if hovered {
+					inset := layout.UniformInset(unit.Dp(10))
+					dim = inset.Layout(gtx, it.layoutCross)
+				}
+				return dim
+			})
 		}),
 	)
 }
@@ -288,11 +285,7 @@ func (it *itemStyle) layoutCheckbox(gtx layout.Context) layout.Dimensions {
 
 // drawCircle draws the checkmark button outline.
 func (it *itemStyle) drawCircle(gtx layout.Context, rect f32.Rectangle, color color.NRGBA) {
-	circle := clip.Circle{
-		Center: f32.Pt(rect.Max.X/2, rect.Max.Y/2),
-		Radius: rect.Dx() / 2,
-	}
-	fillPath(gtx, circle.Path(gtx.Ops), color, unit.Sp(1))
+	fillPath(gtx, clip.Ellipse(rect).Path(gtx.Ops), color, unit.Sp(1))
 }
 
 // drawMark draws the checkmark button icon.
@@ -369,14 +362,14 @@ func (th *todoTheme) Clickable(click *widget.Clickable, txt string) buttonStyle 
 }
 
 func (b *buttonStyle) Layout(gtx layout.Context) layout.Dimensions {
-	return layout.Stack{}.Layout(gtx,
-		layout.Stacked(func(gtx layout.Context) layout.Dimensions {
-			return b.theme.Pad.Button.Layout(gtx, b.Label.Layout)
-		}),
-		// Draw border & handle clicks.
-		layout.Expanded(b.layoutBorder),
-		layout.Expanded(b.Button.Layout),
-	)
+	return b.Button.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return layout.Stack{}.Layout(gtx,
+			layout.Stacked(func(gtx layout.Context) layout.Dimensions {
+				return b.theme.Pad.Button.Layout(gtx, b.Label.Layout)
+			}),
+			layout.Expanded(b.layoutBorder),
+		)
+	})
 }
 
 func (b *buttonStyle) layoutBorder(gtx layout.Context) layout.Dimensions {
