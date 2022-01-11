@@ -50,8 +50,6 @@ func (g *grid) layout(gtx layout.Context, widget gridWidget) layout.Dimensions {
 
 // shrinkToFit renders w, scaling down if it doesn't fit into the available width.
 func shrinkToFit(gtx layout.Context, w layout.Widget) layout.Dimensions {
-	defer op.Save(gtx.Ops).Load()
-
 	// Render w with near-infinite width.
 	macro := op.Record(gtx.Ops)
 	wide := gtx
@@ -65,7 +63,9 @@ func shrinkToFit(gtx layout.Context, w layout.Widget) layout.Dimensions {
 		scale := maxWidth / float32(dim.Size.X)
 		origin := f32.Pt(0, float32(gtx.Constraints.Max.Y))
 		tr := f32.Affine2D{}.Scale(origin, f32.Pt(scale, scale))
-		op.Affine(tr).Add(gtx.Ops)
+		stack := op.Affine(tr).Push(gtx.Ops)
+		defer stack.Pop()
+
 		// Scale dim, too.
 		dim.Size = ptf(tr.Transform(layout.FPt(dim.Size)))
 	}

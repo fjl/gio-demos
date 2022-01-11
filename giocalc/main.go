@@ -141,22 +141,21 @@ func (ui *calcUI) layoutButtons(gtx layout.Context) layout.Dimensions {
 }
 
 func (ui *calcUI) layoutButton(gtx layout.Context, b *button) layout.Dimensions {
-	// Check for mouse events.
-	b.clicker.Layout(gtx)
 	if b.clicker.Clicked() && b.action != nil {
 		b.action()
 	}
 
-	// Draw the button.
-	style := material.Button(ui.theme, &b.clicker, b.text)
-	style.Background = b.color
-	style.Inset = layout.Inset{}
-	style.TextSize = unit.Px(float32(gtx.Constraints.Max.Y) / 2.2)
-	style.CornerRadius = ui.cornerRadius
-	if b.calc.lastOp == b.op {
-		style.Background = activeOpColor
-	}
-	return style.Layout(gtx)
+	return b.clicker.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		style := material.Button(ui.theme, &b.clicker, b.text)
+		style.Background = b.color
+		style.Inset = layout.Inset{}
+		style.TextSize = unit.Px(float32(gtx.Constraints.Max.Y) / 2.2)
+		style.CornerRadius = ui.cornerRadius
+		if b.calc.lastOp == b.op {
+			style.Background = activeOpColor
+		}
+		return style.Layout(gtx)
+	})
 }
 
 // handleKey handles a key event.
@@ -215,8 +214,8 @@ func main() {
 	)
 	go func() {
 		w := app.NewWindow(statusBg, sysBg, size, title, portrait)
-		w.Option(app.MaxSize(designWidth, designHeight))
-		w.Option(app.MinSize(designWidth, designHeight))
+		// w.Option(app.MaxSize(designWidth, designHeight))
+		// w.Option(app.MinSize(designWidth, designHeight))
 
 		if err := loop(w); err != nil {
 			fmt.Fprintln(os.Stderr, err)
