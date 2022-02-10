@@ -215,7 +215,7 @@ func main() {
 	go func() {
 		w := app.NewWindow(statusBg, sysBg, size, title, portrait)
 		// w.Option(app.MaxSize(designWidth, designHeight))
-		// w.Option(app.MinSize(designWidth, designHeight))
+		w.Option(app.MinSize(designWidth, designHeight))
 
 		if err := loop(w); err != nil {
 			fmt.Fprintln(os.Stderr, err)
