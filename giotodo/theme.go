@@ -139,7 +139,11 @@ func (th *todoTheme) ItemLabel(txt string) labelStyle {
 // Layout draws the label.
 func (l *labelStyle) Layout(gtx layout.Context) layout.Dimensions {
 	paint.ColorOp{Color: l.Color}.Add(gtx.Ops)
-	dim := widget.Label{MaxLines: 1}.Layout(gtx, l.theme.Shaper, l.Font, l.TextSize, l.Text)
+
+	// Draw the text. Use minimum dimensions of 0 here to get the true size.
+	mingtx := gtx
+	mingtx.Constraints.Min = image.ZP
+	dim := widget.Label{MaxLines: 1}.Layout(mingtx, l.theme.Shaper, l.Font, l.TextSize, l.Text)
 
 	// Draw strikethrough.
 	if l.StrikeThrough {
