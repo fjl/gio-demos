@@ -3,7 +3,7 @@ module github.com/fjl/gio-demos
 go 1.17
 
 require (
-	gioui.org v0.0.0-20220210101425-887ba1b6e9e3
+	gioui.org v0.0.0-20220302172730-c0c25b777b1e
 	golang.org/x/exp v0.0.0-20210826195003-46c773283d9d // indirect
 	golang.org/x/sys v0.0.0-20210823070655-63515b42dcdf // indirect
 )
