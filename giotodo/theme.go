@@ -231,7 +231,7 @@ func (it *itemStyle) Layout(gtx layout.Context) layout.Dimensions {
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			gtx.Constraints = cbconst // Constant size.
 			return it.item.done.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				return layout.UniformInset(unit.Sp(1)).Layout(gtx, it.layoutCheckbox)
+				return layout.UniformInset(unit.Dp(1)).Layout(gtx, it.layoutCheckbox)
 			})
 		}),
 		// Item text.
