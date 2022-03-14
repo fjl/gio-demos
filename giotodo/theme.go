@@ -264,6 +264,7 @@ func (it *itemStyle) layoutText(gtx layout.Context) layout.Dimensions {
 		label.StrikeThrough = true
 	}
 	dim := it.theme.Pad.Item.Layout(gtx, label.Layout)
+
 	// Label returns minimum required size, but should really
 	// grab all available space to make the alignment work, so
 	// forcefully expand size to max width here.
@@ -373,7 +374,9 @@ func (b *buttonStyle) Layout(gtx layout.Context) layout.Dimensions {
 			layout.Stacked(func(gtx layout.Context) layout.Dimensions {
 				return b.theme.Pad.Button.Layout(gtx, b.Label.Layout)
 			}),
-			layout.Expanded(b.layoutBorder),
+			layout.Expanded(func(gtx layout.Context) layout.Dimensions {
+				return layout.UniformInset(unit.Dp(.5)).Layout(gtx, b.layoutBorder)
+			}),
 		)
 	})
 }
