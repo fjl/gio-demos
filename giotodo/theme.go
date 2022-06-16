@@ -32,13 +32,14 @@ type todoTheme struct {
 		Checkmark  color.NRGBA
 	}
 	Size struct {
-		ItemText     unit.Value
-		StatusText   unit.Value
-		CornerRadius unit.Value
-		Checkbox     unit.Value
-		MinWidth     unit.Value
-		MaxWidth     unit.Value
-		PrefWidth    unit.Value
+		ItemText   unit.Sp
+		StatusText unit.Sp
+
+		CornerRadius unit.Dp
+		Checkbox     unit.Dp
+		MinWidth     unit.Dp
+		MaxWidth     unit.Dp
+		PrefWidth    unit.Dp
 	}
 	Pad struct {
 		Main   layout.Inset
@@ -71,13 +72,13 @@ func newTodoTheme(fonts []text.FontFace) *todoTheme {
 	th.Color.Selection = color.NRGBA{93, 194, 175, 100}
 
 	// Sizes.
-	th.Size.ItemText = unit.Dp(26)
-	th.Size.StatusText = unit.Dp(14)
-	th.Size.CornerRadius = unit.Dp(3)
-	th.Size.Checkbox = unit.Dp(30)
-	th.Size.MinWidth = unit.Dp(350)
-	th.Size.PrefWidth = unit.Dp(550)
-	th.Size.MaxWidth = unit.Dp(700)
+	th.Size.ItemText = 26
+	th.Size.StatusText = 14
+	th.Size.CornerRadius = 3
+	th.Size.Checkbox = 30
+	th.Size.MinWidth = 350
+	th.Size.PrefWidth = 550
+	th.Size.MaxWidth = 700
 
 	// Padding.
 	th.Pad.Main = layout.UniformInset(unit.Dp(12))
@@ -108,7 +109,7 @@ type labelStyle struct {
 	Text          string
 	Color         color.NRGBA
 	Font          text.Font
-	TextSize      unit.Value
+	TextSize      unit.Sp
 	StrikeThrough bool
 	Alignment     text.Alignment
 	theme         *todoTheme
@@ -148,7 +149,7 @@ func (l *labelStyle) Layout(gtx layout.Context) layout.Dimensions {
 	// Draw strikethrough.
 	if l.StrikeThrough {
 		h := dim.Size.Y / 2
-		rect := clip.Rect(image.Rect(0, h, dim.Size.X, h+gtx.Px(unit.Dp(2))))
+		rect := clip.Rect(image.Rect(0, h, dim.Size.X, h+gtx.Dp(2)))
 		paint.FillShape(gtx.Ops, l.Color, rect.Op())
 	}
 	return dim
@@ -221,7 +222,7 @@ func (th *todoTheme) Item(item *item) itemStyle {
 // Layout draws a complete item.
 func (it *itemStyle) Layout(gtx layout.Context) layout.Dimensions {
 	var (
-		cbsize  = gtx.Px(it.theme.Size.Checkbox)
+		cbsize  = gtx.Dp(it.theme.Size.Checkbox)
 		cbconst = layout.Exact(image.Pt(cbsize, cbsize))
 	)
 
@@ -277,7 +278,7 @@ func (it *itemStyle) layoutCheckbox(gtx layout.Context) layout.Dimensions {
 	var (
 		spx  = gtx.Constraints.Min.X
 		size = image.Pt(spx, spx)
-		rect = f32.Rectangle{Max: layout.FPt(size)}
+		rect = image.Rectangle{Max: size}
 	)
 	if it.item.done.Value {
 		circleColor := it.theme.Color.Checkmark
@@ -291,23 +292,24 @@ func (it *itemStyle) layoutCheckbox(gtx layout.Context) layout.Dimensions {
 }
 
 // drawCircle draws the checkmark button outline.
-func (it *itemStyle) drawCircle(gtx layout.Context, rect f32.Rectangle, color color.NRGBA) {
-	fillPath(gtx, clip.Ellipse(rect).Path(gtx.Ops), color, unit.Sp(1))
+func (it *itemStyle) drawCircle(gtx layout.Context, rect image.Rectangle, color color.NRGBA) {
+	fillPath(gtx, clip.Ellipse(rect).Path(gtx.Ops), color, gtx.Sp(1))
 }
 
 // drawMark draws the checkmark button icon.
-func (it *itemStyle) drawMark(gtx layout.Context, rect f32.Rectangle, color color.NRGBA) {
+func (it *itemStyle) drawMark(gtx layout.Context, rect image.Rectangle, color color.NRGBA) {
 	var (
 		path  clip.Path
-		start = f32.Pt(rect.Dx()-rect.Dx()/4, rect.Dy()/4)
-		low   = f32.Pt(rect.Dx()/2.3, rect.Dy()-rect.Dy()/4.6)
-		end   = f32.Pt(rect.Dx()/4, rect.Dy()-rect.Dy()/2.4)
+		w, h  = float32(rect.Dx()), float32(rect.Dy())
+		start = f32.Pt(w-w/4, h/4)
+		low   = f32.Pt(w/2.3, h-h/4.6)
+		end   = f32.Pt(w/4, h-h/2.4)
 	)
 	path.Begin(gtx.Ops)
 	path.MoveTo(start)
 	path.LineTo(low)
 	path.LineTo(end)
-	fillPath(gtx, path.End(), color, unit.Dp(1.8))
+	fillPath(gtx, path.End(), color, gtx.Dp(1.8))
 }
 
 // layoutCross draws the remove button.
@@ -315,26 +317,26 @@ func (it *itemStyle) layoutCross(gtx layout.Context) layout.Dimensions {
 	var (
 		spx  = gtx.Constraints.Min.X
 		size = image.Pt(spx, spx)
-		rect = f32.Rectangle{Max: layout.FPt(size)}
+		rect = image.Rectangle{Max: size}
 	)
 	it.drawCross(gtx, rect)
 	return layout.Dimensions{Size: size}
 }
 
 // drawCross draws the remove button icon.
-func (it *itemStyle) drawCross(gtx layout.Context, rect f32.Rectangle) {
+func (it *itemStyle) drawCross(gtx layout.Context, rect image.Rectangle) {
 	var (
 		color = it.theme.Color.Cross
 		path  clip.Path
 	)
 	path.Begin(gtx.Ops)
-	path.MoveTo(f32.Pt(rect.Min.X, rect.Min.Y))
-	path.LineTo(f32.Pt(rect.Max.X, rect.Max.Y))
-	fillPath(gtx, path.End(), color, unit.Dp(1.8))
+	path.MoveTo(layout.FPt(rect.Min))
+	path.LineTo(layout.FPt(rect.Max))
+	fillPath(gtx, path.End(), color, gtx.Dp(1.8))
 	path.Begin(gtx.Ops)
-	path.MoveTo(f32.Pt(rect.Min.X, rect.Max.Y))
-	path.LineTo(f32.Pt(rect.Max.X, rect.Min.Y))
-	fillPath(gtx, path.End(), color, unit.Dp(1.8))
+	path.MoveTo(layout.FPt(image.Pt(rect.Min.X, rect.Max.Y)))
+	path.LineTo(layout.FPt(image.Pt(rect.Max.X, rect.Min.Y)))
+	fillPath(gtx, path.End(), color, gtx.Dp(1.8))
 }
 
 // Buttons.
@@ -391,11 +393,10 @@ func (b *buttonStyle) layoutBorder(gtx layout.Context) layout.Dimensions {
 func (b *buttonStyle) drawBorder(gtx layout.Context, color color.NRGBA) {
 	var (
 		radius = b.theme.Size.CornerRadius
-		r      = float32(gtx.Px(radius))
-		rect   = f32.Rectangle{Max: layout.FPt(gtx.Constraints.Min)}
-		rr     = clip.RRect{Rect: rect, SE: r, SW: r, NE: r, NW: r}
+		rect   = image.Rectangle{Max: gtx.Constraints.Min}
+		rr     = clip.UniformRRect(rect, gtx.Dp(radius))
 	)
-	fillPath(gtx, rr.Path(gtx.Ops), color, unit.Dp(1))
+	fillPath(gtx, rr.Path(gtx.Ops), color, gtx.Dp(1))
 }
 
 // showIf draws w if cond is true.
@@ -410,7 +411,7 @@ func showIf(cond bool, gtx layout.Context, w layout.Widget) layout.Dimensions {
 }
 
 // fillPath draws the line of p using the given color and stroke width.
-func fillPath(gtx layout.Context, p clip.PathSpec, color color.NRGBA, width unit.Value) {
-	w := float32(gtx.Px(width))
+func fillPath(gtx layout.Context, p clip.PathSpec, color color.NRGBA, width int) {
+	w := float32(width)
 	paint.FillShape(gtx.Ops, color, clip.Stroke{Path: p, Width: w}.Op())
 }
