@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
+	"image"
 	"image/color"
 	"os"
 	"runtime"
 
 	"gioui.org/app"
-	"gioui.org/f32"
 	"gioui.org/font/gofont"
 	"gioui.org/io/clipboard"
 	"gioui.org/io/key"
@@ -43,8 +43,8 @@ type calcUI struct {
 	theme   *material.Theme
 	buttons [5][4]*button
 
-	cornerRadius unit.Value
-	gridSpacing  unit.Value
+	cornerRadius int
+	gridSpacing  int
 }
 
 func newUI(theme *material.Theme) *calcUI {
@@ -90,9 +90,9 @@ func (ui *calcUI) special(name string, fn func()) *button {
 // Layout draws the UI.
 func (ui *calcUI) Layout(gtx layout.Context) layout.Dimensions {
 	// Adapt design for screen size.
-	scaleFactor := float32(gtx.Constraints.Max.X) / float32(gtx.Px(designWidth))
-	ui.cornerRadius = cornerRadius.Scale(scaleFactor)
-	ui.gridSpacing = controlInset.Scale(scaleFactor)
+	scaleFactor := float32(gtx.Constraints.Max.X) / float32(gtx.Dp(designWidth))
+	ui.cornerRadius = gtx.Dp(cornerRadius * unit.Dp(scaleFactor))
+	ui.gridSpacing = gtx.Dp(controlInset * unit.Dp(scaleFactor))
 
 	inset := layout.UniformInset(controlInset)
 	return inset.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -109,8 +109,8 @@ func (ui *calcUI) Layout(gtx layout.Context) layout.Dimensions {
 }
 
 func (ui *calcUI) layoutResult(gtx layout.Context) layout.Dimensions {
-	rect := f32.Rectangle{Max: layout.FPt(gtx.Constraints.Max)}
-	rr := clip.UniformRRect(rect, float32(gtx.Px(ui.cornerRadius)))
+	rect := image.Rectangle{Max: gtx.Constraints.Max}
+	rr := clip.UniformRRect(rect, ui.cornerRadius)
 	paint.FillShape(gtx.Ops, resultBackground, rr.Op(gtx.Ops))
 
 	inset := layout.UniformInset(controlInset)
@@ -119,8 +119,10 @@ func (ui *calcUI) layoutResult(gtx layout.Context) layout.Dimensions {
 
 func (ui *calcUI) layoutResultText(gtx layout.Context) layout.Dimensions {
 	// Scale font based on height.
-	fontSize := unit.Px(float32(gtx.Constraints.Max.Y) / 1.1)
-	l := material.Label(ui.theme, fontSize, ui.calc.text())
+	fontSizePx := float32(gtx.Constraints.Max.Y) / 1.1
+	fontSizeSp := unit.Sp(fontSizePx / gtx.Metric.PxPerSp)
+
+	l := material.Label(ui.theme, fontSizeSp, ui.calc.text())
 	l.Color = resultColor
 	l.Alignment = text.End
 	return shrinkToFit(gtx, l.Layout)
@@ -146,11 +148,14 @@ func (ui *calcUI) layoutButton(gtx layout.Context, b *button) layout.Dimensions 
 	}
 
 	return b.clicker.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		textSizePx := float32(gtx.Constraints.Max.Y) / 2.2
+		textSizeSp := unit.Sp(textSizePx / gtx.Metric.PxPerSp)
+
 		style := material.Button(ui.theme, &b.clicker, b.text)
 		style.Background = b.color
 		style.Inset = layout.Inset{}
-		style.TextSize = unit.Px(float32(gtx.Constraints.Max.Y) / 2.2)
-		style.CornerRadius = ui.cornerRadius
+		style.TextSize = textSizeSp
+		style.CornerRadius = unit.Dp(float32(ui.cornerRadius) / gtx.Metric.PxPerDp)
 		if b.calc.lastOp == b.op {
 			style.Background = activeOpColor
 		}

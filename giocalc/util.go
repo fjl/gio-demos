@@ -7,13 +7,12 @@ import (
 	"gioui.org/f32"
 	"gioui.org/layout"
 	"gioui.org/op"
-	"gioui.org/unit"
 )
 
 // grid lays out widgets in an equally-spaced grid.
 type grid struct {
 	rows, cols int
-	spacing    unit.Value
+	spacing    int // in px
 }
 
 type gridWidget func(int, int, layout.Context) layout.Dimensions
@@ -27,7 +26,7 @@ func (g *grid) layout(gtx layout.Context, widget gridWidget) layout.Dimensions {
 	var (
 		size  = gtx.Constraints.Max
 		w, h  = float32(size.X), float32(size.Y)
-		space = float32(gtx.Px(g.spacing))
+		space = float32(g.spacing)
 	)
 	w = (w - float32(g.cols-1)*space) / float32(g.cols)
 	h = (h - float32(g.rows-1)*space) / float32(g.rows)
@@ -40,7 +39,7 @@ func (g *grid) layout(gtx layout.Context, widget gridWidget) layout.Dimensions {
 				X: float32(col)*w + float32(col)*space,
 				Y: float32(row)*h + float32(row)*space,
 			}
-			offset := op.Offset(pos).Push(gtx.Ops)
+			offset := op.Offset(ptf(pos)).Push(gtx.Ops)
 			widget(row, col, gtx)
 			offset.Pop()
 		}
