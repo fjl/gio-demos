@@ -5,7 +5,6 @@ import (
 	"image"
 	"image/color"
 	"os"
-	"runtime"
 
 	"gioui.org/app"
 	"gioui.org/font/gofont"
@@ -46,6 +45,7 @@ type calcUI struct {
 	cornerRadius int
 	gridSpacing  int
 }
+
 
 func newUI(theme *material.Theme) *calcUI {
 	ui := &calcUI{theme: theme}
@@ -93,6 +93,9 @@ func (ui *calcUI) Layout(gtx layout.Context) layout.Dimensions {
 	scaleFactor := float32(gtx.Constraints.Max.X) / float32(gtx.Dp(designWidth))
 	ui.cornerRadius = gtx.Dp(cornerRadius * unit.Dp(scaleFactor))
 	ui.gridSpacing = gtx.Dp(controlInset * unit.Dp(scaleFactor))
+
+	// Handle key events.
+	ui.layoutInput(gtx)
 
 	inset := layout.UniformInset(controlInset)
 	return inset.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -163,11 +166,49 @@ func (ui *calcUI) layoutButton(gtx layout.Context, b *button) layout.Dimensions 
 	})
 }
 
+// layoutInput registers the global key handler.
+func (ui *calcUI) layoutInput(gtx layout.Context) {
+	input := key.InputOp{
+		Tag:  ui,
+		Hint: key.HintNumeric,
+		Keys: "Short-[CV]|(Shift)-[0,1,2,3,4,5,6,7,8,9,.,+,*,/,%,=,⌤,⏎,⌫,⌦,⎋]|(Alt)-(Shift)-[-]",
+	}
+	input.Add(gtx.Ops)
+
+	for _, ev := range gtx.Queue.Events(ui) {
+		switch ev := ev.(type) {
+		case key.Event:
+			switch {
+			case isCopy(ev):
+				op := clipboard.WriteOp{Text: ui.calc.text()}
+				op.Add(gtx.Ops)
+			case isPaste(ev):
+				op := clipboard.ReadOp{Tag: ui}
+				op.Add(gtx.Ops)
+			default:
+				ui.handleKey(ev)
+			}
+
+		case clipboard.Event:
+			ui.calc.parse(ev.Text)
+		}
+	}
+}
+
+func isCopy(e key.Event) bool {
+	return e.Name == "C" && e.Modifiers.Contain(key.ModShortcut)
+}
+
+func isPaste(e key.Event) bool {
+	return e.Name == "V" && e.Modifiers.Contain(key.ModShortcut)
+}
+
 // handleKey handles a key event.
 func (ui *calcUI) handleKey(e key.Event) {
 	if e.State == key.Release {
 		return
 	}
+
 	switch e.Name {
 	case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".":
 		ui.calc.digit(e.Name)
@@ -248,36 +289,7 @@ func loop(w *app.Window) error {
 			paint.Fill(gtx.Ops, backgroundColor)
 			ui.Layout(gtx)
 			e.Frame(gtx.Ops)
-		case key.Event:
-			switch {
-			case isCopy(e):
-				w.WriteClipboard(ui.calc.text())
-			case isPaste(e):
-				w.ReadClipboard()
-			default:
-				ui.handleKey(e)
-				w.Invalidate()
-			}
-		case clipboard.Event:
-			ui.calc.parse(e.Text)
-			w.Invalidate()
 		}
 	}
 	return nil
-}
-
-func isCopy(e key.Event) bool {
-	mod := key.ModCtrl
-	if runtime.GOOS == "darwin" {
-		mod = key.ModCommand
-	}
-	return e.Name == "C" && e.Modifiers.Contain(mod)
-}
-
-func isPaste(e key.Event) bool {
-	mod := key.ModCtrl
-	if runtime.GOOS == "darwin" {
-		mod = key.ModCommand
-	}
-	return e.Name == "V" && e.Modifiers.Contain(mod)
 }
