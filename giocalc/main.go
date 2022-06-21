@@ -46,7 +46,6 @@ type calcUI struct {
 	gridSpacing  int
 }
 
-
 func newUI(theme *material.Theme) *calcUI {
 	ui := &calcUI{theme: theme}
 	reset := ui.special("AC", ui.calc.reset)
@@ -171,7 +170,7 @@ func (ui *calcUI) layoutInput(gtx layout.Context) {
 	input := key.InputOp{
 		Tag:  ui,
 		Hint: key.HintNumeric,
-		Keys: "Short-[CV]|(Shift)-[0,1,2,3,4,5,6,7,8,9,.,+,*,/,%,=,⌤,⏎,⌫,⌦,⎋]|(Alt)-(Shift)-[-]",
+		Keys: "Short-[C,V]|(Shift)-[0,1,2,3,4,5,6,7,8,9,.,+,*,/,%,=,⌤,⏎,⌫,⌦,⎋]|(Alt)-(Shift)-[-]",
 	}
 	input.Add(gtx.Ops)
 
