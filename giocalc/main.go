@@ -167,12 +167,16 @@ func (ui *calcUI) layoutButton(gtx layout.Context, b *button) layout.Dimensions 
 
 // layoutInput registers the global key handler.
 func (ui *calcUI) layoutInput(gtx layout.Context) {
+	// Register handler for key events.
 	input := key.InputOp{
 		Tag:  ui,
 		Hint: key.HintNumeric,
 		Keys: "Short-[C,V]|(Shift)-[0,1,2,3,4,5,6,7,8,9,.,+,*,/,%,=,⌤,⏎,⌫,⌦,⎋]|(Alt)-(Shift)-[-]",
 	}
 	input.Add(gtx.Ops)
+
+	// Request keyboard focus. This is required to make the Return key work.
+	key.FocusOp{Tag: ui}.Add(gtx.Ops)
 
 	for _, ev := range gtx.Queue.Events(ui) {
 		switch ev := ev.(type) {
