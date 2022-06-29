@@ -6,6 +6,10 @@ eliasnaur.com/font v0.0.0-20220124212145-832bb8fc08c3/go.mod h1:OYVuxibdk9OSLX8v
 gioui.org v0.0.0-20211110142422-303b81953991/go.mod h1:yoWOxPng6WkDpsud+NRmkoftmyWn3rkKsYGEcWHpjTI=
 gioui.org v0.0.0-20220615093012-72669e19bc29 h1:gr7saciVOpale0F8TwffNUIH01X6ThwrTioXVx0Gczw=
 gioui.org v0.0.0-20220615093012-72669e19bc29/go.mod h1:WHoHbUjH91BJS2xkfps2AhKxji+9o3xwfsphGsCBfnM=
+gioui.org v0.0.0-20220627145832-b82b9b258a7a h1:nSOjNi8KOmRBOXpCph8YIMlnFSYCWUPavW+5WqYOwlw=
+gioui.org v0.0.0-20220627145832-b82b9b258a7a/go.mod h1:WHoHbUjH91BJS2xkfps2AhKxji+9o3xwfsphGsCBfnM=
+gioui.org v0.0.0-20220629054745-fa3978e18ea5 h1:TKLO0ZwGPWvAPi1xIkPJYa0XACMsfcH9skLM1u/0k4Q=
+gioui.org v0.0.0-20220629054745-fa3978e18ea5/go.mod h1:WHoHbUjH91BJS2xkfps2AhKxji+9o3xwfsphGsCBfnM=
 gioui.org/cmd v0.0.0-20220314104259-3fd231367f4a h1:IY34SWQN2vHCgCACRa8fHC3Sgysi0m7GObAojeGMMrc=
 gioui.org/cmd v0.0.0-20220314104259-3fd231367f4a/go.mod h1:bH6HiOnaLVXwKxDBQyhZOC97zcDIZBvl0PUxmIRtEGw=
 gioui.org/cpu v0.0.0-20210808092351-bfe733dd3334/go.mod h1:A8M0Cn5o+vY5LTMlnRoK3O5kG+rH0kWfJjeKd9QpBmQ=
