@@ -371,32 +371,16 @@ func (th *todoTheme) Clickable(click *widget.Clickable, txt string) buttonStyle 
 }
 
 func (b *buttonStyle) Layout(gtx layout.Context) layout.Dimensions {
-	return b.Button.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		return layout.Stack{}.Layout(gtx,
-			layout.Stacked(func(gtx layout.Context) layout.Dimensions {
-				return b.theme.Pad.Button.Layout(gtx, b.Label.Layout)
-			}),
-			layout.Expanded(func(gtx layout.Context) layout.Dimensions {
-				return layout.UniformInset(unit.Dp(.5)).Layout(gtx, b.layoutBorder)
-			}),
-		)
-	})
-}
-
-func (b *buttonStyle) layoutBorder(gtx layout.Context) layout.Dimensions {
+	border := widget.Border{CornerRadius: b.theme.Size.CornerRadius, Width: 1}
 	if b.Active {
-		b.drawBorder(gtx, b.Border)
+		border.Color = b.Border
 	}
-	return layout.Dimensions{Size: gtx.Constraints.Min}
-}
 
-func (b *buttonStyle) drawBorder(gtx layout.Context, color color.NRGBA) {
-	var (
-		radius = b.theme.Size.CornerRadius
-		rect   = image.Rectangle{Max: gtx.Constraints.Min}
-		rr     = clip.UniformRRect(rect, gtx.Dp(radius))
-	)
-	fillPath(gtx, rr.Path(gtx.Ops), color, gtx.Dp(1))
+	return b.Button.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return border.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			return b.theme.Pad.Button.Layout(gtx, b.Label.Layout)
+		})
+	})
 }
 
 // showIf draws w if cond is true.
