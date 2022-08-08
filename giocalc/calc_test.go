@@ -80,6 +80,20 @@ func TestCalcOpChain(t *testing.T) {
 	check(t, c, "76")
 }
 
+// This test checks that switching between ops repeatedly ignores
+// all but the first op until new digits are entered.
+func TestCalcOpChain2(t *testing.T) {
+	var c calculator
+	c.digit("8")
+	c.digit("8")
+	c.run(opSub)
+	c.digit("1")
+	c.run(opSub)
+	c.run(opAdd)
+	c.run(opMul)
+	check(t, c, "87")
+}
+
 func check(t *testing.T, c calculator, text string) {
 	t.Helper()
 	if c.text() != text {
