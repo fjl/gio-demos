@@ -28,15 +28,16 @@ type todoTheme struct {
 		Selection  color.NRGBA
 		Border     color.NRGBA
 		Title      color.NRGBA
-		Cross      color.NRGBA
 		Checkmark  color.NRGBA
+		Remove     color.NRGBA
+		RemoveBG   color.NRGBA
 	}
 	Size struct {
-		ItemText   unit.Sp
-		StatusText unit.Sp
-
+		ItemText     unit.Sp
+		StatusText   unit.Sp
 		CornerRadius unit.Dp
 		Checkbox     unit.Dp
+		Remove       unit.Dp
 		MinWidth     unit.Dp
 		MaxWidth     unit.Dp
 		PrefWidth    unit.Dp
@@ -44,6 +45,7 @@ type todoTheme struct {
 	Pad struct {
 		Main   layout.Inset
 		Button layout.Inset
+		Remove layout.Inset
 		Item   layout.Inset
 	}
 	Font struct {
@@ -59,23 +61,27 @@ func newTodoTheme(fonts []text.FontFace) *todoTheme {
 	// Colors.
 	th.Color.Background = color.NRGBA{245, 245, 245, 255}
 	th.Color.MainPanel = color.NRGBA{255, 255, 255, 255}
-	th.Color.Item = color.NRGBA{77, 77, 77, 255}
-	th.Color.ItemDone = color.NRGBA{217, 217, 217, 255}
+	th.Color.Selection = color.NRGBA{93, 194, 175, 100}
 
 	th.Color.HintText = color.NRGBA{243, 234, 243, 255}
 	th.Color.StatusText = color.NRGBA{119, 119, 119, 255}
 	th.Color.Error = color.NRGBA{255, 119, 119, 255}
 	th.Color.Border = color.NRGBA{235, 235, 235, 255}
 	th.Color.Title = color.NRGBA{175, 47, 47, 100}
-	th.Color.Cross = color.NRGBA{175, 91, 94, 255}
+
+	th.Color.Item = color.NRGBA{77, 77, 77, 255}
+	th.Color.ItemDone = color.NRGBA{217, 217, 217, 255}
 	th.Color.Checkmark = color.NRGBA{93, 194, 175, 255}
-	th.Color.Selection = color.NRGBA{93, 194, 175, 100}
+	th.Color.Remove = color.NRGBA{175, 91, 94, 255}
+	th.Color.RemoveBG = th.Color.Remove
+	th.Color.RemoveBG.A = 30
 
 	// Sizes.
 	th.Size.ItemText = 26
 	th.Size.StatusText = 14
 	th.Size.CornerRadius = 3
 	th.Size.Checkbox = 30
+	th.Size.Remove = 20
 	th.Size.MinWidth = 350
 	th.Size.PrefWidth = 550
 	th.Size.MaxWidth = 700
@@ -87,6 +93,12 @@ func newTodoTheme(fonts []text.FontFace) *todoTheme {
 		Bottom: unit.Dp(4),
 		Left:   unit.Dp(8),
 		Right:  unit.Dp(8),
+	}
+	th.Pad.Remove = layout.Inset{
+		Top:    unit.Dp(6),
+		Bottom: unit.Dp(6),
+		Left:   unit.Dp(6),
+		Right:  unit.Dp(6),
 	}
 	th.Pad.Item = layout.Inset{
 		Top:    unit.Dp(8),
@@ -219,40 +231,27 @@ func (th *todoTheme) Item(item *item) itemStyle {
 	}
 }
 
-// Layout draws a complete item.
+// Layout draws an item.
 func (it *itemStyle) Layout(gtx layout.Context) layout.Dimensions {
-	var (
-		cbsize  = gtx.Dp(it.theme.Size.Checkbox)
-		cbconst = layout.Exact(image.Pt(cbsize, cbsize))
-	)
+	return it.item.click.Layout(gtx, it.layoutRow)
+}
 
-	flex := layout.Flex{Alignment: layout.Middle}
-	return flex.Layout(gtx,
+// layoutRow draws an item.
+func (it *itemStyle) layoutRow(gtx layout.Context) layout.Dimensions {
+	return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 		// Checkbox.
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			gtx.Constraints = cbconst // Constant size.
-			return it.item.done.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				return layout.UniformInset(unit.Dp(1)).Layout(gtx, it.layoutCheckbox)
-			})
+			sz := gtx.Dp(it.theme.Size.Checkbox)
+			gtx.Constraints = layout.Exact(image.Pt(sz, sz))
+			return it.item.done.Layout(gtx, it.layoutCheckbox)
 		}),
 		// Item text.
-		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-			// Stack the text click here to track hovering over the text.
-			return it.item.textClick.Layout(gtx, it.layoutText)
-		}),
+		layout.Flexed(1, it.layoutText),
 		// Remove button.
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			gtx.Constraints = cbconst // Constant size (same as checkbox).
-			return it.item.remove.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				// Draw cross when hovering over the item.
-				hovered := it.item.textClick.Hovered() || it.item.remove.Hovered()
-				dim := layout.Dimensions{Size: cbconst.Max}
-				if hovered {
-					inset := layout.UniformInset(unit.Dp(10))
-					dim = inset.Layout(gtx, it.layoutCross)
-				}
-				return dim
-			})
+			sz := gtx.Dp(it.theme.Size.Remove)
+			gtx.Constraints = layout.Exact(image.Pt(sz, sz))
+			return it.layoutRemoveButton(gtx)
 		}),
 	)
 }
@@ -293,7 +292,9 @@ func (it *itemStyle) layoutCheckbox(gtx layout.Context) layout.Dimensions {
 
 // drawCircle draws the checkmark button outline.
 func (it *itemStyle) drawCircle(gtx layout.Context, rect image.Rectangle, color color.NRGBA) {
-	fillPath(gtx, clip.Ellipse(rect).Path(gtx.Ops), color, gtx.Sp(1))
+	w := gtx.Sp(1)
+	rect = rect.Inset(w) // Ensure outline is fully within rect.
+	fillPath(gtx, clip.Ellipse(rect).Path(gtx.Ops), color, w)
 }
 
 // drawMark draws the checkmark button icon.
@@ -312,21 +313,31 @@ func (it *itemStyle) drawMark(gtx layout.Context, rect image.Rectangle, color co
 	fillPath(gtx, path.End(), color, gtx.Dp(1.8))
 }
 
-// layoutCross draws the remove button.
-func (it *itemStyle) layoutCross(gtx layout.Context) layout.Dimensions {
-	var (
-		spx  = gtx.Constraints.Min.X
-		size = image.Pt(spx, spx)
-		rect = image.Rectangle{Max: size}
-	)
-	it.drawCross(gtx, rect)
-	return layout.Dimensions{Size: size}
+// layoutRemoveButton draws the item remove button.
+func (it *itemStyle) layoutRemoveButton(gtx layout.Context) layout.Dimensions {
+	return it.item.remove.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		hovered := it.item.click.Hovered()
+		// Remove is visible only when mouse is on the item.
+		if !hovered {
+			return layout.Dimensions{Size: gtx.Constraints.Min}
+		}
+		// Add a background when hovering over the actual button.
+		if it.item.remove.Hovered() {
+			rect := image.Rectangle{Max: gtx.Constraints.Min}
+			rr := clip.UniformRRect(rect, gtx.Dp(it.theme.Size.CornerRadius))
+			paint.FillShape(gtx.Ops, it.theme.Color.RemoveBG, rr.Op(gtx.Ops))
+		}
+		return it.theme.Pad.Remove.Layout(gtx, it.layoutRemoveCross)
+	})
 }
 
-// drawCross draws the remove button icon.
-func (it *itemStyle) drawCross(gtx layout.Context, rect image.Rectangle) {
+// layoutRemoveCross draws the remove button icon.
+func (it *itemStyle) layoutRemoveCross(gtx layout.Context) layout.Dimensions {
 	var (
-		color = it.theme.Color.Cross
+		spx   = gtx.Constraints.Min.X
+		size  = image.Pt(spx, spx)
+		rect  = image.Rectangle{Max: size}
+		color = it.theme.Color.Remove
 		path  clip.Path
 	)
 	path.Begin(gtx.Ops)
@@ -337,6 +348,8 @@ func (it *itemStyle) drawCross(gtx layout.Context, rect image.Rectangle) {
 	path.MoveTo(layout.FPt(image.Pt(rect.Min.X, rect.Max.Y)))
 	path.LineTo(layout.FPt(image.Pt(rect.Max.X, rect.Min.Y)))
 	fillPath(gtx, path.End(), color, gtx.Dp(1.8))
+
+	return layout.Dimensions{Size: size}
 }
 
 // Buttons.

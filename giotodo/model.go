@@ -23,9 +23,9 @@ type item struct {
 	text string
 
 	// UI state.
-	done      widget.Bool
-	remove    widget.Clickable
-	textClick widget.Clickable
+	done   widget.Bool
+	remove widget.Clickable
+	click  widget.Clickable
 }
 
 type todoModel struct {
