@@ -16,7 +16,7 @@ import (
 
 // todoTheme defines the TodoMVC style.
 type todoTheme struct {
-	Shaper text.Shaper
+	Shaper *text.Shaper
 	Color  struct {
 		Background color.NRGBA
 		MainPanel  color.NRGBA
@@ -54,7 +54,7 @@ type todoTheme struct {
 }
 
 func newTodoTheme(fonts []text.FontFace) *todoTheme {
-	th := &todoTheme{Shaper: text.NewCache(fonts)}
+	th := &todoTheme{Shaper: text.NewShaper(fonts)}
 
 	// Colors.
 	th.Color.Background = color.NRGBA{245, 245, 245, 255}
