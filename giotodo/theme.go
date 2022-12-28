@@ -22,6 +22,7 @@ type todoTheme struct {
 		MainPanel  color.NRGBA
 		Item       color.NRGBA
 		ItemDone   color.NRGBA
+		ItemEditBG color.NRGBA
 		HintText   color.NRGBA
 		StatusText color.NRGBA
 		Error      color.NRGBA
@@ -43,10 +44,11 @@ type todoTheme struct {
 		PrefWidth    unit.Dp
 	}
 	Pad struct {
-		Main   layout.Inset
-		Button layout.Inset
-		Remove layout.Inset
-		Item   layout.Inset
+		Main     layout.Inset
+		MainItem layout.Inset
+		Button   layout.Inset
+		Remove   layout.Inset
+		Item     layout.Inset
 	}
 	Font struct {
 		Item     text.Font
@@ -66,11 +68,12 @@ func newTodoTheme(fonts []text.FontFace) *todoTheme {
 	th.Color.HintText = color.NRGBA{243, 234, 243, 255}
 	th.Color.StatusText = color.NRGBA{119, 119, 119, 255}
 	th.Color.Error = color.NRGBA{255, 119, 119, 255}
-	th.Color.Border = color.NRGBA{235, 235, 235, 255}
+	th.Color.Border = color.NRGBA{200, 200, 200, 130}
 	th.Color.Title = color.NRGBA{175, 47, 47, 100}
 
 	th.Color.Item = color.NRGBA{77, 77, 77, 255}
 	th.Color.ItemDone = color.NRGBA{217, 217, 217, 255}
+	th.Color.ItemEditBG = color.NRGBA{77, 77, 77, 18}
 	th.Color.Checkmark = color.NRGBA{93, 194, 175, 255}
 	th.Color.Remove = color.NRGBA{175, 91, 94, 255}
 	th.Color.RemoveBG = th.Color.Remove
@@ -88,6 +91,12 @@ func newTodoTheme(fonts []text.FontFace) *todoTheme {
 
 	// Padding.
 	th.Pad.Main = layout.UniformInset(unit.Dp(12))
+	th.Pad.MainItem = layout.Inset{
+		Top:    0,
+		Bottom: 0,
+		Left:   th.Pad.Main.Left,
+		Right:  th.Pad.Main.Right,
+	}
 	th.Pad.Button = layout.Inset{
 		Top:    unit.Dp(4),
 		Bottom: unit.Dp(4),
@@ -217,23 +226,47 @@ func (e *editorStyle) Layout(gtx layout.Context) layout.Dimensions {
 // Items.
 
 type itemStyle struct {
-	item  *item
-	Label labelStyle
-	theme *todoTheme
+	item    *item
+	theme   *todoTheme
+	label   labelStyle
+	editor  editorStyle
+	editing bool
 }
 
 // Item renders a todo item.
-func (th *todoTheme) Item(item *item) itemStyle {
-	return itemStyle{
+// When edit is non-nil, the item text is editable.
+func (th *todoTheme) Item(item *item, edit *widget.Editor) itemStyle {
+	s := itemStyle{
 		item:  item,
-		Label: th.ItemLabel(item.text),
 		theme: th,
 	}
+	if edit != nil {
+		s.editing = true
+		s.editor = th.Editor(edit, "")
+	} else {
+		s.label = th.ItemLabel(item.text)
+	}
+	return s
 }
 
 // Layout draws an item.
 func (it *itemStyle) Layout(gtx layout.Context) layout.Dimensions {
-	return it.item.click.Layout(gtx, it.layoutRow)
+	// Layout the item to get dimensions.
+	r := op.Record(gtx.Ops)
+	dim := it.theme.Pad.MainItem.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return it.item.click.Layout(gtx, it.layoutRow)
+	})
+	mac := r.Stop()
+
+	// Put background under item when editing.
+	if it.editing {
+		bg := clip.Rect(image.Rectangle{Max: dim.Size})
+		paint.FillShape(gtx.Ops, it.theme.Color.ItemEditBG, bg.Op())
+	}
+
+	// Now draw item over.
+	mac.Add(gtx.Ops)
+	return dim
 }
 
 // layoutRow draws an item.
@@ -258,16 +291,22 @@ func (it *itemStyle) layoutRow(gtx layout.Context) layout.Dimensions {
 
 // layoutText draws the item text.
 func (it *itemStyle) layoutText(gtx layout.Context) layout.Dimensions {
-	label := it.Label
-	if it.item.done.Value {
-		label.Color = it.theme.Color.ItemDone
-		label.StrikeThrough = true
+	var textWidget layout.Widget
+	if it.editing {
+		textWidget = it.editor.Layout
+	} else {
+		label := it.label
+		if it.item.done.Value {
+			label.Color = it.theme.Color.ItemDone
+			label.StrikeThrough = true
+		}
+		textWidget = label.Layout
 	}
-	dim := it.theme.Pad.Item.Layout(gtx, label.Layout)
 
-	// Label returns minimum required size, but should really
-	// grab all available space to make the alignment work, so
-	// forcefully expand size to max width here.
+	dim := it.theme.Pad.Item.Layout(gtx, textWidget)
+
+	// Label returns the minimum required size, but should really grab all available
+	// space to make flex alignment work. Forcefully expand size to max width here.
 	dim.Size.X = gtx.Constraints.Max.X
 	return dim
 }
@@ -275,18 +314,19 @@ func (it *itemStyle) layoutText(gtx layout.Context) layout.Dimensions {
 // layoutCheckbox draws the checkbox.
 func (it *itemStyle) layoutCheckbox(gtx layout.Context) layout.Dimensions {
 	var (
-		spx  = gtx.Constraints.Min.X
-		size = image.Pt(spx, spx)
-		rect = image.Rectangle{Max: size}
+		spx    = gtx.Constraints.Min.X
+		size   = image.Pt(spx, spx)
+		rect   = image.Rectangle{Max: size}
+		circle color.NRGBA
 	)
 	if it.item.done.Value {
-		circleColor := it.theme.Color.Checkmark
-		circleColor.A = 125
 		it.drawMark(gtx, rect, it.theme.Color.Checkmark)
-		it.drawCircle(gtx, rect, circleColor)
+		circle = it.theme.Color.Checkmark
+		circle.A = 125
 	} else {
-		it.drawCircle(gtx, rect, it.theme.Color.Border)
+		circle = it.theme.Color.Border
 	}
+	it.drawCircle(gtx, rect, circle)
 	return layout.Dimensions{Size: size}
 }
 

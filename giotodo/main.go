@@ -32,6 +32,11 @@ type todoUI struct {
 	active    widget.Clickable
 	completed widget.Clickable
 	clear     widget.Clickable
+
+	// Item editing.
+	itemBeingEdited    *item
+	itemEditor         widget.Editor
+	editFocusRequested bool
 }
 
 func newTodoUI(theme *todoTheme, model *todoModel) *todoUI {
@@ -78,7 +83,7 @@ func (ui *todoUI) Layout(gtx layout.Context) layout.Dimensions {
 			return ui.theme.Pad.Main.Layout(gtx, ui.layoutInput)
 		}),
 		layout.Flexed(1.0, func(gtx layout.Context) layout.Dimensions {
-			return ui.theme.Pad.Main.Layout(gtx, ui.layoutItems)
+			return ui.layoutItems(gtx)
 		}),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return ui.theme.Pad.Main.Layout(gtx, ui.layoutStatusBar)
@@ -96,21 +101,53 @@ func (ui *todoUI) layoutInput(gtx layout.Context) layout.Dimensions {
 func (ui *todoUI) layoutItems(gtx layout.Context) layout.Dimensions {
 	items := ui.todos.filteredItems(ui.filter)
 
-	// Process item actions.
+	// Process other item actions.
 	for _, item := range items {
 		if item.done.Changed() {
-			ui.todos.setItemDone(item, item.done.Value)
+			ui.todos.itemUpdated(item)
 		}
 		if item.remove.Clicked() {
 			ui.todos.remove(item)
+		}
+		if doubleClicked(&item.click) {
+			ui.startItemEdit(item)
+		}
+	}
+
+	// Item editing should end (and the item be updated) when itemEditor loses focus.
+	// Requesting focus uses events, and a simple check for itemEditor.Focused() returning
+	// false doesn't work: it would also trigger when editing just started but focus
+	// hasn't been granted yet. To make it work, we call endItemEdit only when focus is
+	// not being requested.
+	if ui.itemBeingEdited != nil {
+		foc := ui.itemEditor.Focused()
+		switch {
+		case foc && ui.editFocusRequested:
+			ui.editFocusRequested = false
+		case !foc && !ui.editFocusRequested:
+			ui.endItemEdit()
 		}
 	}
 
 	// Draw the list.
 	return ui.list.Layout(gtx, len(items), func(gtx layout.Context, i int) layout.Dimensions {
-		item := ui.theme.Item(items[i])
-		return item.Layout(gtx)
+		item := items[i]
+		var e *widget.Editor
+		if item == ui.itemBeingEdited {
+			e = &ui.itemEditor
+		}
+		w := ui.theme.Item(item, e)
+		return w.Layout(gtx)
 	})
+}
+
+func doubleClicked(c *widget.Clickable) bool {
+	for _, cl := range c.Clicks() {
+		if cl.NumClicks >= 2 {
+			return true
+		}
+	}
+	return false
 }
 
 // layoutStatusBar draws the status bar at the bottom.
@@ -161,6 +198,39 @@ func (ui *todoUI) layoutStatusBar(gtx layout.Context) layout.Dimensions {
 func (ui *todoUI) submit(line string) {
 	ui.mainInput.SetText("")
 	ui.todos.add(line)
+}
+
+func (ui *todoUI) startItemEdit(item *item) {
+	if ui.itemBeingEdited == item {
+		// Already editing this item.
+		return
+	} else if ui.itemBeingEdited != nil {
+		// Cancel previous edit first.
+		ui.endItemEdit()
+	}
+
+	fmt.Println("start editing item:", item.text)
+
+	// Configure the editor.
+	ui.itemBeingEdited = item
+	ui.itemEditor = widget.Editor{Submit: true, SingleLine: true, InputHint: key.HintText}
+	ui.itemEditor.SetText(item.text)
+	length := ui.itemEditor.Len()
+	ui.itemEditor.SetCaret(length, length)
+	ui.itemEditor.Focus()
+	ui.editFocusRequested = true
+}
+
+func (ui *todoUI) endItemEdit() {
+	if ui.itemBeingEdited == nil {
+		return
+	}
+	text := ui.itemEditor.Text()
+	fmt.Println("end editing item:", text)
+	ui.itemBeingEdited.text = text
+	ui.todos.itemUpdated(ui.itemBeingEdited)
+	ui.itemBeingEdited = nil
+	ui.editFocusRequested = true
 }
 
 func main() {

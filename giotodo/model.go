@@ -127,7 +127,7 @@ func (f itemFilter) match(it *item) bool {
 	}
 }
 
-func (m *todoModel) setItemDone(it *item, done bool) {
+func (m *todoModel) itemUpdated(it *item) {
 	m.store.UpdateItem(it.id, todostore.Item{
 		Text: it.text,
 		Done: it.done.Value,
