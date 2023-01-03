@@ -114,18 +114,25 @@ func (ui *todoUI) layoutItems(gtx layout.Context) layout.Dimensions {
 		}
 	}
 
-	// Item editing should end (and the item be updated) when itemEditor loses focus.
-	// Requesting focus uses events, and a simple check for itemEditor.Focused() returning
-	// false doesn't work: it would also trigger when editing just started but focus
-	// hasn't been granted yet. To make it work, we call endItemEdit only when focus is
-	// not being requested.
 	if ui.itemBeingEdited != nil {
+		// Item editing should end (and the item be updated) when itemEditor loses focus.
+		// Requesting focus uses events, and a simple check for itemEditor.Focused() returning
+		// false doesn't work: it would also trigger when editing just started but focus
+		// hasn't been granted yet. To make it work, we call endItemEdit only when focus is
+		// not being requested.
 		foc := ui.itemEditor.Focused()
 		switch {
 		case foc && ui.editFocusRequested:
 			ui.editFocusRequested = false
 		case !foc && !ui.editFocusRequested:
 			ui.endItemEdit()
+		}
+		// Submit events also end the edit operation.
+		for _, e := range ui.itemEditor.Events() {
+			switch e.(type) {
+			case widget.SubmitEvent:
+				ui.endItemEdit()
+			}
 		}
 	}
 
