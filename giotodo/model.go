@@ -3,6 +3,7 @@ package main
 import (
 	"container/list"
 	"fmt"
+	"log"
 
 	"gioui.org/widget"
 	"github.com/fjl/gio-demos/giotodo/internal/todostore"
@@ -128,6 +129,9 @@ func (f itemFilter) match(it *item) bool {
 }
 
 func (m *todoModel) itemUpdated(it *item) {
+	if m.items[it.id] == nil {
+		log.Println("ignoring update of deleted item " + it.id)
+	}
 	m.store.UpdateItem(it.id, todostore.Item{
 		Text: it.text,
 		Done: it.done.Value,
