@@ -103,14 +103,14 @@ func (ui *todoUI) layoutItems(gtx layout.Context) layout.Dimensions {
 
 	// Process other item actions.
 	for _, item := range items {
+		if doubleClicked(&item.click) {
+			ui.startItemEdit(item)
+		}
 		if item.done.Changed() {
 			ui.todos.itemUpdated(item)
 		}
 		if item.remove.Clicked() {
 			ui.todos.remove(item)
-		}
-		if doubleClicked(&item.click) {
-			ui.startItemEdit(item)
 		}
 	}
 
