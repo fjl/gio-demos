@@ -69,6 +69,10 @@ func (m *todoModel) handleStoreEvent(e todostore.Event) {
 
 	case *todostore.ItemChanged:
 		it := m.items[e.ID]
+		if it == nil {
+			log.Println("ignoring ItemChanged event for deleted item " + e.ID)
+			return
+		}
 		it.done.Value = e.Item.Done
 		it.text = e.Item.Text
 		m.cachedListFilter = filterInvalid
