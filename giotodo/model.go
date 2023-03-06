@@ -131,6 +131,7 @@ func (f itemFilter) match(it *item) bool {
 func (m *todoModel) itemUpdated(it *item) {
 	if m.items[it.id] == nil {
 		log.Println("ignoring update of deleted item " + it.id)
+		return
 	}
 	m.store.UpdateItem(it.id, todostore.Item{
 		Text: it.text,
