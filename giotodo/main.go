@@ -18,6 +18,8 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"github.com/fjl/gio-demos/giotodo/internal/todostore"
+
+	. "github.com/fjl/gio-demos/internal/cd"
 )
 
 type todoUI struct {
@@ -52,7 +54,7 @@ func newTodoUI(theme *todoTheme, model *todoModel) *todoUI {
 }
 
 // Layout draws the app.
-func (ui *todoUI) Layout(gtx layout.Context) layout.Dimensions {
+func (ui *todoUI) Layout(gtx C) D {
 	// Process submissions.
 	for _, e := range ui.mainInput.Events() {
 		switch e := e.(type) {
@@ -79,26 +81,26 @@ func (ui *todoUI) Layout(gtx layout.Context) layout.Dimensions {
 
 	// Draw.
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+		layout.Rigid(func(gtx C) D {
 			return ui.theme.Pad.Main.Layout(gtx, ui.layoutInput)
 		}),
-		layout.Flexed(1.0, func(gtx layout.Context) layout.Dimensions {
+		layout.Flexed(1.0, func(gtx C) D {
 			return ui.layoutItems(gtx)
 		}),
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+		layout.Rigid(func(gtx C) D {
 			return ui.theme.Pad.Main.Layout(gtx, ui.layoutStatusBar)
 		}),
 	)
 }
 
 // layoutInput draws the main input line.
-func (ui *todoUI) layoutInput(gtx layout.Context) layout.Dimensions {
+func (ui *todoUI) layoutInput(gtx C) D {
 	ed := ui.theme.Editor(&ui.mainInput, "What needs to be done?")
 	return ed.Layout(gtx)
 }
 
 // layoutItems draws the current items.
-func (ui *todoUI) layoutItems(gtx layout.Context) layout.Dimensions {
+func (ui *todoUI) layoutItems(gtx C) D {
 	items := ui.todos.filteredItems(ui.filter)
 
 	// Process other item actions.
@@ -137,7 +139,7 @@ func (ui *todoUI) layoutItems(gtx layout.Context) layout.Dimensions {
 	}
 
 	// Draw the list.
-	return ui.list.Layout(gtx, len(items), func(gtx layout.Context, i int) layout.Dimensions {
+	return ui.list.Layout(gtx, len(items), func(gtx C, i int) D {
 		item := items[i]
 		var e *widget.Editor
 		if item == ui.itemBeingEdited {
@@ -158,7 +160,7 @@ func doubleClicked(c *widget.Clickable) bool {
 }
 
 // layoutStatusBar draws the status bar at the bottom.
-func (ui *todoUI) layoutStatusBar(gtx layout.Context) layout.Dimensions {
+func (ui *todoUI) layoutStatusBar(gtx C) D {
 	doneCount := ui.todos.doneCount()
 	count := ui.todos.len() - doneCount
 
@@ -167,7 +169,7 @@ func (ui *todoUI) layoutStatusBar(gtx layout.Context) layout.Dimensions {
 		Spacing: layout.SpaceBetween,
 	}
 	return flex.Layout(gtx,
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+		layout.Rigid(func(gtx C) D {
 			label := ui.theme.StatusLabel("")
 			if ui.todos.lastError != nil {
 				label.Text = ui.todos.lastError.Error()
@@ -182,7 +184,7 @@ func (ui *todoUI) layoutStatusBar(gtx layout.Context) layout.Dimensions {
 			label.Alignment = text.Start
 			return ui.theme.Pad.Button.Layout(gtx, label.Layout)
 		}),
-		layout.Flexed(1.0, func(gtx layout.Context) layout.Dimensions {
+		layout.Flexed(1.0, func(gtx C) D {
 			all := ui.theme.StatusButton(&ui.all, "All", ui.filter == filterAll)
 			active := ui.theme.StatusButton(&ui.active, "Active", ui.filter == filterActive)
 			completed := ui.theme.StatusButton(&ui.completed, "Done", ui.filter == filterCompleted)
@@ -193,7 +195,7 @@ func (ui *todoUI) layoutStatusBar(gtx layout.Context) layout.Dimensions {
 				layout.Rigid(completed.Layout),
 			)
 		}),
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+		layout.Rigid(func(gtx C) D {
 			clear := ui.theme.Clickable(&ui.clear, "Clear")
 			clear.Label.Alignment = text.End
 			return showIf(doneCount > 0, gtx, clear.Layout)

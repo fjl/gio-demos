@@ -12,6 +12,8 @@ import (
 	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget"
+
+	. "github.com/fjl/gio-demos/internal/cd"
 )
 
 // todoTheme defines the TodoMVC style.
@@ -159,7 +161,7 @@ func (th *todoTheme) ItemLabel(txt string) labelStyle {
 }
 
 // Layout draws the label.
-func (l *labelStyle) Layout(gtx layout.Context) layout.Dimensions {
+func (l *labelStyle) Layout(gtx C) D {
 	paint.ColorOp{Color: l.Color}.Add(gtx.Ops)
 
 	// Draw the text. Use minimum dimensions of 0 here to get the true size.
@@ -189,7 +191,7 @@ func (th *todoTheme) Editor(ed *widget.Editor, hint string) editorStyle {
 	return editorStyle{Hint: hint, Editor: ed, theme: th}
 }
 
-func (e *editorStyle) Layout(gtx layout.Context) layout.Dimensions {
+func (e *editorStyle) Layout(gtx C) D {
 	// Draw label.
 	macro := op.Record(gtx.Ops)
 	paint.ColorOp{Color: e.theme.Color.HintText}.Add(gtx.Ops)
@@ -250,10 +252,10 @@ func (th *todoTheme) Item(item *item, edit *widget.Editor) itemStyle {
 }
 
 // Layout draws an item.
-func (it *itemStyle) Layout(gtx layout.Context) layout.Dimensions {
+func (it *itemStyle) Layout(gtx C) D {
 	// Layout the item to get dimensions.
 	r := op.Record(gtx.Ops)
-	dim := it.theme.Pad.MainItem.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+	dim := it.theme.Pad.MainItem.Layout(gtx, func(gtx C) D {
 		return it.item.click.Layout(gtx, it.layoutRow)
 	})
 	mac := r.Stop()
@@ -270,10 +272,10 @@ func (it *itemStyle) Layout(gtx layout.Context) layout.Dimensions {
 }
 
 // layoutRow draws an item.
-func (it *itemStyle) layoutRow(gtx layout.Context) layout.Dimensions {
+func (it *itemStyle) layoutRow(gtx C) D {
 	return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 		// Checkbox.
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+		layout.Rigid(func(gtx C) D {
 			sz := gtx.Dp(it.theme.Size.Checkbox)
 			gtx.Constraints = layout.Exact(image.Pt(sz, sz))
 			return it.item.done.Layout(gtx, it.layoutCheckbox)
@@ -281,7 +283,7 @@ func (it *itemStyle) layoutRow(gtx layout.Context) layout.Dimensions {
 		// Item text.
 		layout.Flexed(1, it.layoutText),
 		// Remove button.
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+		layout.Rigid(func(gtx C) D {
 			sz := gtx.Dp(it.theme.Size.Remove)
 			gtx.Constraints = layout.Exact(image.Pt(sz, sz))
 			return it.layoutRemoveButton(gtx)
@@ -290,7 +292,7 @@ func (it *itemStyle) layoutRow(gtx layout.Context) layout.Dimensions {
 }
 
 // layoutText draws the item text.
-func (it *itemStyle) layoutText(gtx layout.Context) layout.Dimensions {
+func (it *itemStyle) layoutText(gtx C) D {
 	var textWidget layout.Widget
 	if it.editing {
 		textWidget = it.editor.Layout
@@ -312,7 +314,7 @@ func (it *itemStyle) layoutText(gtx layout.Context) layout.Dimensions {
 }
 
 // layoutCheckbox draws the checkbox.
-func (it *itemStyle) layoutCheckbox(gtx layout.Context) layout.Dimensions {
+func (it *itemStyle) layoutCheckbox(gtx C) D {
 	var (
 		spx    = gtx.Constraints.Min.X
 		size   = image.Pt(spx, spx)
@@ -327,18 +329,18 @@ func (it *itemStyle) layoutCheckbox(gtx layout.Context) layout.Dimensions {
 		circle = it.theme.Color.Border
 	}
 	it.drawCircle(gtx, rect, circle)
-	return layout.Dimensions{Size: size}
+	return D{Size: size}
 }
 
 // drawCircle draws the checkmark button outline.
-func (it *itemStyle) drawCircle(gtx layout.Context, rect image.Rectangle, color color.NRGBA) {
+func (it *itemStyle) drawCircle(gtx C, rect image.Rectangle, color color.NRGBA) {
 	w := gtx.Sp(1)
 	rect = rect.Inset(w) // Ensure outline is fully within rect.
 	fillPath(gtx, clip.Ellipse(rect).Path(gtx.Ops), color, w)
 }
 
 // drawMark draws the checkmark button icon.
-func (it *itemStyle) drawMark(gtx layout.Context, rect image.Rectangle, color color.NRGBA) {
+func (it *itemStyle) drawMark(gtx C, rect image.Rectangle, color color.NRGBA) {
 	var (
 		path  clip.Path
 		w, h  = float32(rect.Dx()), float32(rect.Dy())
@@ -354,12 +356,12 @@ func (it *itemStyle) drawMark(gtx layout.Context, rect image.Rectangle, color co
 }
 
 // layoutRemoveButton draws the item remove button.
-func (it *itemStyle) layoutRemoveButton(gtx layout.Context) layout.Dimensions {
-	return it.item.remove.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+func (it *itemStyle) layoutRemoveButton(gtx C) D {
+	return it.item.remove.Layout(gtx, func(gtx C) D {
 		hovered := it.item.click.Hovered()
 		// Remove is visible only when mouse is on the item.
 		if !hovered {
-			return layout.Dimensions{Size: gtx.Constraints.Min}
+			return D{Size: gtx.Constraints.Min}
 		}
 		// Add a background when hovering over the actual button.
 		if it.item.remove.Hovered() {
@@ -372,7 +374,7 @@ func (it *itemStyle) layoutRemoveButton(gtx layout.Context) layout.Dimensions {
 }
 
 // layoutRemoveCross draws the remove button icon.
-func (it *itemStyle) layoutRemoveCross(gtx layout.Context) layout.Dimensions {
+func (it *itemStyle) layoutRemoveCross(gtx C) D {
 	var (
 		spx   = gtx.Constraints.Min.X
 		size  = image.Pt(spx, spx)
@@ -389,7 +391,7 @@ func (it *itemStyle) layoutRemoveCross(gtx layout.Context) layout.Dimensions {
 	path.LineTo(layout.FPt(image.Pt(rect.Max.X, rect.Min.Y)))
 	fillPath(gtx, path.End(), color, gtx.Dp(1.8))
 
-	return layout.Dimensions{Size: size}
+	return D{Size: size}
 }
 
 // Buttons.
@@ -423,21 +425,21 @@ func (th *todoTheme) Clickable(click *widget.Clickable, txt string) buttonStyle 
 	}
 }
 
-func (b *buttonStyle) Layout(gtx layout.Context) layout.Dimensions {
+func (b *buttonStyle) Layout(gtx C) D {
 	border := widget.Border{CornerRadius: b.theme.Size.CornerRadius, Width: 1}
 	if b.Active {
 		border.Color = b.Border
 	}
 
-	return b.Button.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		return border.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+	return b.Button.Layout(gtx, func(gtx C) D {
+		return border.Layout(gtx, func(gtx C) D {
 			return b.theme.Pad.Button.Layout(gtx, b.Label.Layout)
 		})
 	})
 }
 
 // showIf draws w if cond is true.
-func showIf(cond bool, gtx layout.Context, w layout.Widget) layout.Dimensions {
+func showIf(cond bool, gtx C, w layout.Widget) D {
 	m := op.Record(gtx.Ops)
 	dim := w(gtx)
 	call := m.Stop()
@@ -448,7 +450,7 @@ func showIf(cond bool, gtx layout.Context, w layout.Widget) layout.Dimensions {
 }
 
 // fillPath draws the line of p using the given color and stroke width.
-func fillPath(gtx layout.Context, p clip.PathSpec, color color.NRGBA, width int) {
+func fillPath(gtx C, p clip.PathSpec, color color.NRGBA, width int) {
 	w := float32(width)
 	paint.FillShape(gtx.Ops, color, clip.Stroke{Path: p, Width: w}.Op())
 }
