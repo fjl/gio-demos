@@ -7,6 +7,8 @@ import (
 	"gioui.org/f32"
 	"gioui.org/layout"
 	"gioui.org/op"
+
+	. "github.com/fjl/gio-demos/internal/cd"
 )
 
 // grid lays out widgets in an equally-spaced grid.
@@ -15,12 +17,12 @@ type grid struct {
 	spacing    int // in px
 }
 
-type gridWidget func(int, int, layout.Context) layout.Dimensions
+type gridWidget func(int, int, C) D
 
 // layout places the grid elements by calling widget for each row/column.
-func (g *grid) layout(gtx layout.Context, widget gridWidget) layout.Dimensions {
+func (g *grid) layout(gtx C, widget gridWidget) D {
 	if g.cols == 0 || g.rows == 0 {
-		return layout.Dimensions{}
+		return D{}
 	}
 
 	var (
@@ -44,11 +46,11 @@ func (g *grid) layout(gtx layout.Context, widget gridWidget) layout.Dimensions {
 			offset.Pop()
 		}
 	}
-	return layout.Dimensions{Size: size}
+	return D{Size: size}
 }
 
 // shrinkToFit renders w, scaling down if it doesn't fit into the available width.
-func shrinkToFit(gtx layout.Context, w layout.Widget) layout.Dimensions {
+func shrinkToFit(gtx C, w layout.Widget) D {
 	// Render w with near-infinite width.
 	macro := op.Record(gtx.Ops)
 	wide := gtx

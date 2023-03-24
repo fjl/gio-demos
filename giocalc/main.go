@@ -19,6 +19,8 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+
+	. "github.com/fjl/gio-demos/internal/cd"
 )
 
 var (
@@ -87,7 +89,7 @@ func (ui *calcUI) special(name string, fn func()) *button {
 }
 
 // Layout draws the UI.
-func (ui *calcUI) Layout(gtx layout.Context) layout.Dimensions {
+func (ui *calcUI) Layout(gtx C) D {
 	// Adapt design for screen size.
 	scaleFactor := float32(gtx.Constraints.Max.X) / float32(gtx.Dp(designWidth))
 	ui.cornerRadius = gtx.Dp(cornerRadius * unit.Dp(scaleFactor))
@@ -97,20 +99,20 @@ func (ui *calcUI) Layout(gtx layout.Context) layout.Dimensions {
 	ui.layoutInput(gtx)
 
 	inset := layout.UniformInset(controlInset)
-	return inset.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+	return inset.Layout(gtx, func(gtx C) D {
 		flex := layout.Flex{Axis: layout.Vertical, Spacing: layout.SpaceStart}
 		return flex.Layout(gtx,
-			layout.Flexed(20, func(gtx layout.Context) layout.Dimensions {
+			layout.Flexed(20, func(gtx C) D {
 				return inset.Layout(gtx, ui.layoutResult)
 			}),
-			layout.Flexed(70, func(gtx layout.Context) layout.Dimensions {
+			layout.Flexed(70, func(gtx C) D {
 				return inset.Layout(gtx, ui.layoutButtons)
 			}),
 		)
 	})
 }
 
-func (ui *calcUI) layoutResult(gtx layout.Context) layout.Dimensions {
+func (ui *calcUI) layoutResult(gtx C) D {
 	rect := image.Rectangle{Max: gtx.Constraints.Max}
 	rr := clip.UniformRRect(rect, ui.cornerRadius)
 	paint.FillShape(gtx.Ops, resultBackground, rr.Op(gtx.Ops))
@@ -119,7 +121,7 @@ func (ui *calcUI) layoutResult(gtx layout.Context) layout.Dimensions {
 	return inset.Layout(gtx, ui.layoutResultText)
 }
 
-func (ui *calcUI) layoutResultText(gtx layout.Context) layout.Dimensions {
+func (ui *calcUI) layoutResultText(gtx C) D {
 	// Scale font based on height.
 	fontSizePx := float32(gtx.Constraints.Max.Y) / 1.1
 	fontSizeSp := unit.Sp(fontSizePx / gtx.Metric.PxPerSp)
@@ -130,26 +132,26 @@ func (ui *calcUI) layoutResultText(gtx layout.Context) layout.Dimensions {
 	return shrinkToFit(gtx, l.Layout)
 }
 
-func (ui *calcUI) layoutButtons(gtx layout.Context) layout.Dimensions {
+func (ui *calcUI) layoutButtons(gtx C) D {
 	g := grid{
 		rows:    len(ui.buttons),
 		cols:    len(ui.buttons[0]),
 		spacing: ui.gridSpacing,
 	}
-	return g.layout(gtx, func(row, col int, gtx layout.Context) layout.Dimensions {
+	return g.layout(gtx, func(row, col int, gtx C) D {
 		if b := ui.buttons[row][col]; b != nil {
 			return ui.layoutButton(gtx, b)
 		}
-		return layout.Dimensions{}
+		return D{}
 	})
 }
 
-func (ui *calcUI) layoutButton(gtx layout.Context, b *button) layout.Dimensions {
+func (ui *calcUI) layoutButton(gtx C, b *button) D {
 	if b.clicker.Clicked() && b.action != nil {
 		b.action()
 	}
 
-	return b.clicker.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+	return b.clicker.Layout(gtx, func(gtx C) D {
 		textSizePx := float32(gtx.Constraints.Max.Y) / 2.2
 		textSizeSp := unit.Sp(textSizePx / gtx.Metric.PxPerSp)
 
@@ -166,7 +168,7 @@ func (ui *calcUI) layoutButton(gtx layout.Context, b *button) layout.Dimensions 
 }
 
 // layoutInput registers the global key handler.
-func (ui *calcUI) layoutInput(gtx layout.Context) {
+func (ui *calcUI) layoutInput(gtx C) {
 	// Register handler for key events.
 	input := key.InputOp{
 		Tag:  ui,
