@@ -285,6 +285,10 @@ func (it *itemStyle) layoutRow(gtx C) D {
 		layout.Flexed(1, it.layoutText),
 		// Remove button.
 		layout.Rigid(func(gtx C) D {
+			if !it.item.click.Hovered() {
+				// Remove is visible only when mouse is on the item.
+				return D{}
+			}
 			sz := gtx.Dp(it.theme.Size.Remove)
 			gtx.Constraints = layout.Exact(image.Pt(sz, sz))
 			return it.layoutRemoveButton(gtx)
@@ -359,11 +363,6 @@ func (it *itemStyle) drawMark(gtx C, rect image.Rectangle, color color.NRGBA) {
 // layoutRemoveButton draws the item remove button.
 func (it *itemStyle) layoutRemoveButton(gtx C) D {
 	return it.item.remove.Layout(gtx, func(gtx C) D {
-		hovered := it.item.click.Hovered()
-		// Remove is visible only when mouse is on the item.
-		if !hovered {
-			return D{Size: gtx.Constraints.Min}
-		}
 		// Add a background when hovering over the actual button.
 		if it.item.remove.Hovered() {
 			rect := image.Rectangle{Max: gtx.Constraints.Min}
