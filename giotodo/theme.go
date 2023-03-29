@@ -162,12 +162,15 @@ func (th *todoTheme) ItemLabel(txt string) labelStyle {
 
 // Layout draws the label.
 func (l *labelStyle) Layout(gtx C) D {
-	paint.ColorOp{Color: l.Color}.Add(gtx.Ops)
+	textMaterial := recording(gtx.Ops, func() {
+		paint.ColorOp{Color: l.Color}.Add(gtx.Ops)
+	})
 
 	// Draw the text. Use minimum dimensions of 0 here to get the true size.
 	mingtx := gtx
 	mingtx.Constraints.Min = image.ZP
-	dim := widget.Label{MaxLines: 1}.Layout(mingtx, l.theme.Shaper, l.Font, l.TextSize, l.Text)
+	label := widget.Label{MaxLines: 1}
+	dim := label.Layout(mingtx, l.theme.Shaper, l.Font, l.TextSize, l.Text, textMaterial)
 
 	// Draw strikethrough.
 	if l.StrikeThrough {
@@ -192,11 +195,20 @@ func (th *todoTheme) Editor(ed *widget.Editor, hint string) editorStyle {
 }
 
 func (e *editorStyle) Layout(gtx C) D {
-	// Draw label.
+	hintMaterial := recording(gtx.Ops, func() {
+		paint.ColorOp{Color: e.theme.Color.HintText}.Add(gtx.Ops)
+	})
+	textMaterial := recording(gtx.Ops, func() {
+		paint.ColorOp{Color: e.theme.Color.Item}.Add(gtx.Ops)
+	})
+	selectionMaterial := recording(gtx.Ops, func() {
+		paint.ColorOp{Color: e.theme.Color.Selection}.Add(gtx.Ops)
+	})
+
+	// Draw hint label.
 	macro := op.Record(gtx.Ops)
-	paint.ColorOp{Color: e.theme.Color.HintText}.Add(gtx.Ops)
 	tl := widget.Label{Alignment: e.Editor.Alignment}
-	dims := tl.Layout(gtx, e.theme.Shaper, e.theme.Font.ItemHint, e.theme.Size.ItemText, e.Hint)
+	dims := tl.Layout(gtx, e.theme.Shaper, e.theme.Font.ItemHint, e.theme.Size.ItemText, e.Hint, hintMaterial)
 	call := macro.Stop()
 	if w := dims.Size.X; gtx.Constraints.Min.X < w {
 		gtx.Constraints.Min.X = w
@@ -206,21 +218,10 @@ func (e *editorStyle) Layout(gtx C) D {
 	}
 
 	// Draw editor.
-	dims = e.Editor.Layout(gtx, e.theme.Shaper, e.theme.Font.Item, e.theme.Size.ItemText, nil)
-	if e.Editor.SelectionLen() > 0 {
-		paint.ColorOp{Color: e.theme.Color.Selection}.Add(gtx.Ops)
-		e.Editor.PaintSelection(gtx)
-	}
-	if e.Editor.Len() > 0 {
-		paint.ColorOp{Color: e.theme.Color.Item}.Add(gtx.Ops)
-		e.Editor.PaintText(gtx)
-	} else {
+	dims = e.Editor.Layout(gtx, e.theme.Shaper, e.theme.Font.Item, e.theme.Size.ItemText, textMaterial, selectionMaterial)
+	if e.Editor.Len() == 0 {
+		// Show hint while input is empty.
 		call.Add(gtx.Ops)
-	}
-	disabled := gtx.Queue == nil
-	if !disabled {
-		paint.ColorOp{Color: e.theme.Color.Item}.Add(gtx.Ops)
-		e.Editor.PaintCaret(gtx)
 	}
 	return dims
 }
@@ -453,4 +454,10 @@ func showIf(cond bool, gtx C, w layout.Widget) D {
 func fillPath(gtx C, p clip.PathSpec, color color.NRGBA, width int) {
 	w := float32(width)
 	paint.FillShape(gtx.Ops, color, clip.Stroke{Path: p, Width: w}.Op())
+}
+
+func recording(ops *op.Ops, f func()) op.CallOp {
+	rec := op.Record(ops)
+	f()
+	return rec.Stop()
 }
