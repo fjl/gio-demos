@@ -4,11 +4,14 @@ dmitri.shuralyov.com/gpu/mtl v0.0.0-20201218220906-28db891af037/go.mod h1:H6x//7
 eliasnaur.com/font v0.0.0-20220124212145-832bb8fc08c3 h1:djFprmHZgrSepsHAIRMp5UJn3PzsoTg9drI+BDmif5Q=
 eliasnaur.com/font v0.0.0-20220124212145-832bb8fc08c3/go.mod h1:OYVuxibdk9OSLX8vAqydtRPP87PyTFcT9uH3MlEGBQA=
 eliasnaur.com/font v0.0.0-20230308162249-dd43949cb42d h1:ARo7NCVvN2NdhLlJE9xAbKweuI9L6UgfTbYb0YwPacY=
+eliasnaur.com/font v0.0.0-20230308162249-dd43949cb42d/go.mod h1:OYVuxibdk9OSLX8vAqydtRPP87PyTFcT9uH3MlEGBQA=
 gioui.org v0.0.0-20211110142422-303b81953991/go.mod h1:yoWOxPng6WkDpsud+NRmkoftmyWn3rkKsYGEcWHpjTI=
 gioui.org v0.0.0-20230323230841-d7b1c7c33b33 h1:Mbv+SOoRWTW+kDa+qQlSKLiKgyKw585sci85I4FRL7M=
 gioui.org v0.0.0-20230323230841-d7b1c7c33b33/go.mod h1:+W1Kpf96YcfissZocFqIp6O42FDTuphkObbEybp+Ffc=
 gioui.org v0.0.0-20230328152535-7e8c10927bcc h1:4lS+ZLy/yoOmzgnfdLPbIffOz+TM80u3RZvFiP7bstc=
 gioui.org v0.0.0-20230328152535-7e8c10927bcc/go.mod h1:LruglWxj5yLZETgJbbljsAsBbfApW1Jtm3+U5PJ7zto=
+gioui.org v0.0.0-20230405173245-6937a5dd1f39 h1:xPFytaL5nWY62LkzaXeqj2/akIfjDS0InpPGr54VMZE=
+gioui.org v0.0.0-20230405173245-6937a5dd1f39/go.mod h1:4w97roZm/PjNBCRlF41RUEJxKBV/nkKPHs8yzn6GkN0=
 gioui.org/cmd v0.0.0-20220314104259-3fd231367f4a h1:IY34SWQN2vHCgCACRa8fHC3Sgysi0m7GObAojeGMMrc=
 gioui.org/cmd v0.0.0-20220314104259-3fd231367f4a/go.mod h1:bH6HiOnaLVXwKxDBQyhZOC97zcDIZBvl0PUxmIRtEGw=
 gioui.org/cpu v0.0.0-20210808092351-bfe733dd3334/go.mod h1:A8M0Cn5o+vY5LTMlnRoK3O5kG+rH0kWfJjeKd9QpBmQ=
@@ -95,6 +98,8 @@ github.com/go-text/typesetting v0.0.0-20221214153724-0399769901d5 h1:iOA0HmtpANn
 github.com/go-text/typesetting v0.0.0-20221214153724-0399769901d5/go.mod h1:/cmOXaoTiO+lbCwkTZBgCvevJpbFsZ5reXIpEJVh5MI=
 github.com/go-text/typesetting v0.0.0-20230327141846-b6333f70ed72 h1:oIG5nO+VCMVXIP+5u7t44AEc0kcS45cfi+3Hawv9xQs=
 github.com/go-text/typesetting v0.0.0-20230327141846-b6333f70ed72/go.mod h1:zvWM81wAVW6QfVDI6yxfbCuoLnobSYTuMsrXU/u11y8=
+github.com/go-text/typesetting v0.0.0-20230405155246-bf9c697c6e16 h1:DvHeDNqK8cxdZ7C6y88pt3uE7euZH7/LluzyfnUfH/Q=
+github.com/go-text/typesetting v0.0.0-20230405155246-bf9c697c6e16/go.mod h1:zvWM81wAVW6QfVDI6yxfbCuoLnobSYTuMsrXU/u11y8=
 github.com/gobwas/httphead v0.0.0-20180130184737-2c6c146eadee h1:s+21KNqlpePfkah2I+gwHF8xmJWRjooY+5248k6m4A0=
 github.com/gobwas/httphead v0.0.0-20180130184737-2c6c146eadee/go.mod h1:L0fX3K22YWvt/FAX9NnzrNzcI4wNYi9Yku4O0LKYflo=
 github.com/gobwas/pool v0.2.0 h1:QEmUOlnSjWtnpRGHF3SauEiOsy82Cup83Vf2LcMlnc8=

@@ -206,10 +206,13 @@ func (e *editorStyle) Layout(gtx C) D {
 	})
 
 	// Draw hint label.
-	macro := op.Record(gtx.Ops)
-	tl := widget.Label{Alignment: e.Editor.Alignment}
-	dims := tl.Layout(gtx, e.theme.Shaper, e.theme.Font.ItemHint, e.theme.Size.ItemText, e.Hint, hintMaterial)
-	call := macro.Stop()
+	var dims D
+	showHint := recording(gtx.Ops, func() {
+		tl := widget.Label{Alignment: e.Editor.Alignment}
+		dims = tl.Layout(gtx, e.theme.Shaper, e.theme.Font.ItemHint, e.theme.Size.ItemText, e.Hint, hintMaterial)
+	})
+
+	// Expand minimum dimensions to fit the hint label.
 	if w := dims.Size.X; gtx.Constraints.Min.X < w {
 		gtx.Constraints.Min.X = w
 	}
@@ -220,8 +223,7 @@ func (e *editorStyle) Layout(gtx C) D {
 	// Draw editor.
 	dims = e.Editor.Layout(gtx, e.theme.Shaper, e.theme.Font.Item, e.theme.Size.ItemText, textMaterial, selectionMaterial)
 	if e.Editor.Len() == 0 {
-		// Show hint while input is empty.
-		call.Add(gtx.Ops)
+		showHint.Add(gtx.Ops)
 	}
 	return dims
 }
@@ -339,7 +341,7 @@ func (it *itemStyle) layoutCheckbox(gtx C) D {
 
 // drawCircle draws the checkmark button outline.
 func (it *itemStyle) drawCircle(gtx C, rect image.Rectangle, color color.NRGBA) {
-	w := gtx.Sp(1)
+	w := gtx.Dp(1.3)
 	rect = rect.Inset(w) // Ensure outline is fully within rect.
 	fillPath(gtx, clip.Ellipse(rect).Path(gtx.Ops), color, w)
 }
