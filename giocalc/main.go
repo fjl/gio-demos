@@ -279,12 +279,15 @@ func main() {
 
 // loop is the main loop of the app.
 func loop(w *app.Window) error {
+	// Use Go font because the design is kind of built for it.
+	theme := material.NewTheme()
+	gofonts := gofont.Collection()
+	theme.Shaper = text.NewShaper(text.NoSystemFonts(), text.WithCollection(gofonts))
+
 	var (
-		th  = material.NewTheme(gofont.Collection())
-		ui  = newUI(th)
+		ui  = newUI(theme)
 		ops op.Ops
 	)
-
 	for e := range w.Events() {
 		switch e := e.(type) {
 		case system.DestroyEvent:

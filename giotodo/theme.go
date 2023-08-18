@@ -4,7 +4,11 @@ import (
 	"image"
 	"image/color"
 
+	colorEmoji "eliasnaur.com/font/noto/emoji/color"
 	"gioui.org/f32"
+	"gioui.org/font"
+	"gioui.org/font/gofont"
+	"gioui.org/font/opentype"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/clip"
@@ -53,14 +57,33 @@ type todoTheme struct {
 		Item     layout.Inset
 	}
 	Font struct {
-		Item     text.Font
-		ItemHint text.Font
-		Status   text.Font
+		Item     font.Font
+		ItemHint font.Font
+		Status   font.Font
 	}
 }
 
-func newTodoTheme(fonts []text.FontFace) *todoTheme {
-	th := &todoTheme{Shaper: text.NewShaper(fonts)}
+func newTodoTheme() *todoTheme {
+	// Add Go fonts as fallback.
+	gofonts := gofont.Collection()
+	// Load a color emoji font.
+	emojiFace, err := opentype.Parse(colorEmoji.TTF)
+	if err != nil {
+		panic(err)
+	}
+	emojiCollection := []text.FontFace{
+		{
+			Font: font.Font{Typeface: "Noto Color Emoji"},
+			Face: emojiFace,
+		},
+	}
+
+	th := &todoTheme{
+		Shaper: text.NewShaper(
+			text.WithCollection(gofonts),
+			text.WithCollection(emojiCollection),
+		),
+	}
 
 	// Colors.
 	th.Color.Background = color.NRGBA{245, 245, 245, 255}
@@ -119,9 +142,9 @@ func newTodoTheme(fonts []text.FontFace) *todoTheme {
 	}
 
 	// Fonts.
-	th.Font.Item.Style = text.Regular
-	th.Font.ItemHint.Style = text.Italic
-	th.Font.Status.Style = text.Regular
+	th.Font.Item.Style = font.Regular
+	th.Font.ItemHint.Style = font.Italic
+	th.Font.Status.Style = font.Regular
 
 	return th
 }
@@ -131,7 +154,7 @@ func newTodoTheme(fonts []text.FontFace) *todoTheme {
 type labelStyle struct {
 	Text          string
 	Color         color.NRGBA
-	Font          text.Font
+	Font          font.Font
 	TextSize      unit.Sp
 	StrikeThrough bool
 	Alignment     text.Alignment

@@ -7,10 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	colorEmoji "eliasnaur.com/font/noto/emoji/color"
 	"gioui.org/app"
-	"gioui.org/font/gofont"
-	"gioui.org/font/opentype"
 	"gioui.org/io/key"
 	"gioui.org/io/system"
 	"gioui.org/layout"
@@ -246,19 +243,8 @@ func (ui *todoUI) endItemEdit() {
 
 func main() {
 	go func() {
-		collection := gofont.Collection()
-		// Load a color emoji font.
-		emojiFace, err := opentype.Parse(colorEmoji.TTF)
-		if err != nil {
-			panic(err)
-		}
-		collection = append(collection, text.FontFace{
-			Font: text.Font{Typeface: "Noto Color Emoji"},
-			Face: emojiFace,
-		})
-
 		var (
-			theme    = newTodoTheme(collection)
+			theme    = newTodoTheme()
 			title    = app.Title("GioTodo")
 			size     = app.Size(theme.Size.PrefWidth, unit.Dp(600))
 			minSize  = app.MinSize(theme.Size.MinWidth, unit.Dp(250))

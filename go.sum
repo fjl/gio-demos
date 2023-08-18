@@ -12,6 +12,8 @@ gioui.org v0.0.0-20230328152535-7e8c10927bcc h1:4lS+ZLy/yoOmzgnfdLPbIffOz+TM80u3
 gioui.org v0.0.0-20230328152535-7e8c10927bcc/go.mod h1:LruglWxj5yLZETgJbbljsAsBbfApW1Jtm3+U5PJ7zto=
 gioui.org v0.0.0-20230405173245-6937a5dd1f39 h1:xPFytaL5nWY62LkzaXeqj2/akIfjDS0InpPGr54VMZE=
 gioui.org v0.0.0-20230405173245-6937a5dd1f39/go.mod h1:4w97roZm/PjNBCRlF41RUEJxKBV/nkKPHs8yzn6GkN0=
+gioui.org v0.2.1-0.20230816214404-0e77a2b5210d h1:yns7bBl2gutyo9FqvRG4oYZkaeyAGTvYiwuDsuSfp7U=
+gioui.org v0.2.1-0.20230816214404-0e77a2b5210d/go.mod h1:1H72sKEk/fNFV+l0JNeM2Dt3co3Y4uaQcD+I+/GQ0e4=
 gioui.org/cmd v0.0.0-20220314104259-3fd231367f4a h1:IY34SWQN2vHCgCACRa8fHC3Sgysi0m7GObAojeGMMrc=
 gioui.org/cmd v0.0.0-20220314104259-3fd231367f4a/go.mod h1:bH6HiOnaLVXwKxDBQyhZOC97zcDIZBvl0PUxmIRtEGw=
 gioui.org/cpu v0.0.0-20210808092351-bfe733dd3334/go.mod h1:A8M0Cn5o+vY5LTMlnRoK3O5kG+rH0kWfJjeKd9QpBmQ=
@@ -100,6 +102,8 @@ github.com/go-text/typesetting v0.0.0-20230327141846-b6333f70ed72 h1:oIG5nO+VCMV
 github.com/go-text/typesetting v0.0.0-20230327141846-b6333f70ed72/go.mod h1:zvWM81wAVW6QfVDI6yxfbCuoLnobSYTuMsrXU/u11y8=
 github.com/go-text/typesetting v0.0.0-20230405155246-bf9c697c6e16 h1:DvHeDNqK8cxdZ7C6y88pt3uE7euZH7/LluzyfnUfH/Q=
 github.com/go-text/typesetting v0.0.0-20230405155246-bf9c697c6e16/go.mod h1:zvWM81wAVW6QfVDI6yxfbCuoLnobSYTuMsrXU/u11y8=
+github.com/go-text/typesetting v0.0.0-20230803102845-24e03d8b5372 h1:FQivqchis6bE2/9uF70M2gmmLpe82esEm2QadL0TEJo=
+github.com/go-text/typesetting v0.0.0-20230803102845-24e03d8b5372/go.mod h1:evDBbvNR/KaVFZ2ZlDSOWWXIUKq0wCOEtzLxRM8SG3k=
 github.com/gobwas/httphead v0.0.0-20180130184737-2c6c146eadee h1:s+21KNqlpePfkah2I+gwHF8xmJWRjooY+5248k6m4A0=
 github.com/gobwas/httphead v0.0.0-20180130184737-2c6c146eadee/go.mod h1:L0fX3K22YWvt/FAX9NnzrNzcI4wNYi9Yku4O0LKYflo=
 github.com/gobwas/pool v0.2.0 h1:QEmUOlnSjWtnpRGHF3SauEiOsy82Cup83Vf2LcMlnc8=
