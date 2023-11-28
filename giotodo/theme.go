@@ -63,27 +63,26 @@ type todoTheme struct {
 	}
 }
 
-func newTodoTheme() *todoTheme {
-	// Add Go fonts as fallback.
-	gofonts := gofont.Collection()
-	// Load a color emoji font.
+func loadFonts() []text.FontFace {
+	// use go font by defaultn
+	collection := gofont.Collection()
+
+	// color emoji font
 	emojiFace, err := opentype.Parse(colorEmoji.TTF)
 	if err != nil {
 		panic(err)
 	}
-	emojiCollection := []text.FontFace{
-		{
-			Font: font.Font{Typeface: "Noto Color Emoji"},
-			Face: emojiFace,
-		},
-	}
+	collection = append(collection, text.FontFace{
+		Font: font.Font{Typeface: "Noto Color Emoji"},
+		Face: emojiFace,
+	})
+	return collection
+}
 
-	th := &todoTheme{
-		Shaper: text.NewShaper(
-			text.WithCollection(gofonts),
-			text.WithCollection(emojiCollection),
-		),
-	}
+func newTodoTheme() *todoTheme {
+	fonts := loadFonts()
+	shp := text.NewShaper(text.WithCollection(fonts), text.NoSystemFonts())
+	th := &todoTheme{Shaper: shp}
 
 	// Colors.
 	th.Color.Background = color.NRGBA{245, 245, 245, 255}
