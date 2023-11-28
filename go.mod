@@ -3,7 +3,7 @@ module github.com/fjl/gio-demos
 go 1.17
 
 require (
-	gioui.org v0.2.1-0.20230816214404-0e77a2b5210d
+	gioui.org v0.3.1
 	golang.org/x/exp v0.0.0-20221012211006-4de253d81b95 // indirect
 	golang.org/x/sys v0.0.0-20220825204002-c680a09ffe64 // indirect
 )
@@ -13,7 +13,7 @@ require gioui.org/cmd v0.0.0-20220314104259-3fd231367f4a
 require (
 	eliasnaur.com/font v0.0.0-20230308162249-dd43949cb42d // indirect
 	gioui.org/cpu v0.0.0-20210817075930-8d6a761490d2 // indirect
-	gioui.org/shader v1.0.6 // indirect
+	gioui.org/shader v1.0.8 // indirect
 	github.com/akavel/rsrc v0.10.1 // indirect
 	github.com/benoitkugler/textlayout v0.3.0 // indirect
 	github.com/go-text/typesetting v0.0.0-20230803102845-24e03d8b5372 // indirect
