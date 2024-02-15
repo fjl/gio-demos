@@ -9,7 +9,6 @@ import (
 
 	"gioui.org/app"
 	"gioui.org/io/key"
-	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/paint"
@@ -38,6 +37,7 @@ type todoUI struct {
 	itemBeingEdited    *item
 	itemEditor         widget.Editor
 	editFocusRequested bool
+	initialFocus       bool
 }
 
 func newTodoUI(theme *todoTheme, model *todoModel) *todoUI {
@@ -48,14 +48,23 @@ func newTodoUI(theme *todoTheme, model *todoModel) *todoUI {
 		mainInput: widget.Editor{Submit: true, SingleLine: true, InputHint: key.HintText},
 		list:      layout.List{Axis: layout.Vertical},
 	}
-	ui.mainInput.Focus()
 	return ui
 }
 
 // Layout draws the app.
 func (ui *todoUI) Layout(gtx C) D {
+	// Set focus to the input line initially.
+	if !ui.initialFocus {
+		gtx.Execute(key.FocusCmd{Tag: &ui.mainInput})
+		ui.initialFocus = true
+	}
+
 	// Process submissions.
-	for _, e := range ui.mainInput.Events() {
+	for {
+		e, ok := ui.mainInput.Update(gtx)
+		if !ok {
+			break
+		}
 		switch e := e.(type) {
 		case widget.SubmitEvent:
 			newItem := strings.TrimSpace(e.Text)
@@ -105,7 +114,7 @@ func (ui *todoUI) layoutItems(gtx C) D {
 	// Process other item actions.
 	for _, item := range items {
 		if doubleClicked(&item.click, gtx) {
-			ui.startItemEdit(item)
+			ui.startItemEdit(gtx, item)
 		}
 		if item.done.Update(gtx) {
 			ui.todos.itemUpdated(item)
@@ -117,11 +126,11 @@ func (ui *todoUI) layoutItems(gtx C) D {
 
 	if ui.itemBeingEdited != nil {
 		// Item editing should end (and the item be updated) when itemEditor loses focus.
-		// Requesting focus uses events, and a simple check for itemEditor.Focused() returning
+		// Requesting focus uses events, and a simple check for Focused(itemEditor) returning
 		// false doesn't work: it would also trigger when editing just started but focus
 		// hasn't been granted yet. To make it work, we call endItemEdit only when focus is
 		// not being requested.
-		foc := ui.itemEditor.Focused()
+		foc := gtx.Focused(&ui.itemEditor)
 		switch {
 		case foc && ui.editFocusRequested:
 			ui.editFocusRequested = false
@@ -129,7 +138,11 @@ func (ui *todoUI) layoutItems(gtx C) D {
 			ui.endItemEdit()
 		}
 		// Submit events also end the edit operation.
-		for _, e := range ui.itemEditor.Events() {
+		for {
+			e, ok := ui.itemEditor.Update(gtx)
+			if !ok {
+				break
+			}
 			switch e.(type) {
 			case widget.SubmitEvent:
 				ui.endItemEdit()
@@ -149,13 +162,17 @@ func (ui *todoUI) layoutItems(gtx C) D {
 	})
 }
 
-func doubleClicked(c *widget.Clickable, gtx C) bool {
-	for _, cl := range c.Update(gtx) {
+func doubleClicked(c *widget.Clickable, gtx C) (clicked bool) {
+	for {
+		cl, ok := c.Update(gtx)
+		if !ok {
+			break
+		}
 		if cl.NumClicks >= 2 {
-			return true
+			clicked = true
 		}
 	}
-	return false
+	return clicked
 }
 
 // layoutStatusBar draws the status bar at the bottom.
@@ -208,7 +225,7 @@ func (ui *todoUI) submit(line string) {
 	ui.todos.add(line)
 }
 
-func (ui *todoUI) startItemEdit(item *item) {
+func (ui *todoUI) startItemEdit(gtx C, item *item) {
 	if ui.itemBeingEdited == item {
 		// Already editing this item.
 		return
@@ -225,7 +242,7 @@ func (ui *todoUI) startItemEdit(item *item) {
 	ui.itemEditor.SetText(item.text)
 	length := ui.itemEditor.Len()
 	ui.itemEditor.SetCaret(length, length)
-	ui.itemEditor.Focus()
+	gtx.Execute(key.FocusCmd{Tag: &ui.itemEditor})
 	ui.editFocusRequested = true
 }
 
@@ -284,14 +301,14 @@ func loop(w *app.Window, theme *todoTheme) error {
 		}
 		e := w.NextEvent()
 		switch e := e.(type) {
-		case system.StageEvent:
-			if e.Stage == system.StagePaused {
+		case app.StageEvent:
+			if e.Stage == app.StagePaused {
 				store.Persist()
 			}
-		case system.DestroyEvent:
+		case app.DestroyEvent:
 			return e.Err
-		case system.FrameEvent:
-			gtx := layout.NewContext(&ops, e)
+		case app.FrameEvent:
+			gtx := app.NewContext(&ops, e)
 			paint.Fill(gtx.Ops, ui.theme.Color.MainPanel)
 			ui.Layout(gtx)
 			e.Frame(gtx.Ops)
