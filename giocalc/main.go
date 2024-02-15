@@ -204,7 +204,13 @@ func (ui *calcUI) layoutInput(gtx C) {
 
 func (ui *calcUI) makeEventFilter() []event.Filter {
 	return []event.Filter{
+		// Clipboard events.
 		transfer.TargetFilter{Target: ui, Type: "application/text"},
+
+		// Steal tab key events from Gio to avoid automatic focus handling.
+		key.Filter{Name: key.NameTab, Optional: key.ModShift},
+
+		// Button keys
 		key.Filter{Name: "0"},
 		key.Filter{Name: "1"},
 		key.Filter{Name: "2"},
@@ -228,6 +234,8 @@ func (ui *calcUI) makeEventFilter() []event.Filter {
 		key.Filter{Name: key.NameEscape},
 		key.Filter{Name: key.NameDeleteBackward},
 		key.Filter{Name: key.NameDeleteForward},
+
+		// Copy/Paste
 		key.Filter{Name: "C", Required: key.ModShortcut},
 		key.Filter{Name: "V", Required: key.ModShortcut},
 	}
