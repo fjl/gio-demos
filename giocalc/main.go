@@ -4,13 +4,16 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"io"
 	"os"
+	"strings"
 
 	"gioui.org/app"
 	"gioui.org/font/gofont"
 	"gioui.org/io/clipboard"
+	"gioui.org/io/event"
 	"gioui.org/io/key"
-	"gioui.org/io/system"
+	"gioui.org/io/transfer"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/clip"
@@ -40,9 +43,10 @@ var (
 
 // calcUI is the user interface of the calculator.
 type calcUI struct {
-	calc    calculator
-	theme   *material.Theme
-	buttons [5][4]*button
+	calc     calculator
+	theme    *material.Theme
+	buttons  [5][4]*button
+	evFilter []event.Filter
 
 	cornerRadius int
 	gridSpacing  int
@@ -61,6 +65,7 @@ func newUI(theme *material.Theme) *calcUI {
 		{ui.digit("1"), ui.digit("2"), ui.digit("3"), ui.op(opAdd)},
 		{ui.digit("0"), nil, decimal, ui.op(opEq)},
 	}
+	ui.evFilter = ui.makeEventFilter()
 	return ui
 }
 
@@ -169,34 +174,62 @@ func (ui *calcUI) layoutButton(gtx C, b *button) D {
 
 // layoutInput registers the global key handler.
 func (ui *calcUI) layoutInput(gtx C) {
-	// Register handler for key events.
-	input := key.InputOp{
-		Tag:  ui,
-		Hint: key.HintNumeric,
-		Keys: "Short-[C,V]|(Shift)-[0,1,2,3,4,5,6,7,8,9,.,+,*,/,%,=,⌤,⏎,⌫,⌦,⎋]|(Alt)-(Shift)-[-]",
-	}
-	input.Add(gtx.Ops)
-
-	// Request keyboard focus. This is required to make the Return key work.
-	key.FocusOp{Tag: ui}.Add(gtx.Ops)
-
-	for _, ev := range gtx.Queue.Events(ui) {
+	event.Op(gtx.Ops, ui)
+	for {
+		ev, ok := gtx.Event(ui.evFilter...)
+		if !ok {
+			break
+		}
 		switch ev := ev.(type) {
 		case key.Event:
 			switch {
 			case isCopy(ev):
-				op := clipboard.WriteOp{Text: ui.calc.text()}
-				op.Add(gtx.Ops)
+				text := io.NopCloser(strings.NewReader(ui.calc.text()))
+				gtx.Execute(clipboard.WriteCmd{Type: "application/text", Data: text})
 			case isPaste(ev):
-				op := clipboard.ReadOp{Tag: ui}
-				op.Add(gtx.Ops)
+				gtx.Execute(clipboard.ReadCmd{Tag: ui})
 			default:
 				ui.handleKey(ev)
 			}
-
-		case clipboard.Event:
-			ui.calc.parse(ev.Text)
+		case transfer.DataEvent:
+			r := ev.Open()
+			text, _ := io.ReadAll(io.LimitReader(r, 4096))
+			r.Close()
+			ui.calc.parse(string(text))
+		default:
+			fmt.Printf("unhandled event type %T\n", ev)
 		}
+	}
+}
+
+func (ui *calcUI) makeEventFilter() []event.Filter {
+	return []event.Filter{
+		transfer.TargetFilter{Target: ui, Type: "application/text"},
+		key.Filter{Name: "0"},
+		key.Filter{Name: "1"},
+		key.Filter{Name: "2"},
+		key.Filter{Name: "3"},
+		key.Filter{Name: "4"},
+		key.Filter{Name: "5"},
+		key.Filter{Name: "6"},
+		key.Filter{Name: "7"},
+		key.Filter{Name: "8"},
+		key.Filter{Name: "9"},
+		key.Filter{Name: ".", Optional: key.ModShift},
+		key.Filter{Name: ",", Optional: key.ModShift},
+		key.Filter{Name: "+", Optional: key.ModShift},
+		key.Filter{Name: "*", Optional: key.ModShift},
+		key.Filter{Name: "-", Optional: key.ModAlt | key.ModShift},
+		key.Filter{Name: "/", Optional: key.ModShift},
+		key.Filter{Name: "%", Optional: key.ModShift},
+		key.Filter{Name: "=", Optional: key.ModShift},
+		key.Filter{Name: key.NameReturn},
+		key.Filter{Name: key.NameEnter},
+		key.Filter{Name: key.NameEscape},
+		key.Filter{Name: key.NameDeleteBackward},
+		key.Filter{Name: key.NameDeleteForward},
+		key.Filter{Name: "C", Required: key.ModShortcut},
+		key.Filter{Name: "V", Required: key.ModShortcut},
 	}
 }
 
@@ -216,7 +249,7 @@ func (ui *calcUI) handleKey(e key.Event) {
 
 	switch e.Name {
 	case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".":
-		ui.calc.digit(e.Name)
+		ui.calc.digit(string(e.Name))
 	case "+":
 		ui.calc.run(opAdd)
 	case "-":
@@ -291,10 +324,10 @@ func loop(w *app.Window) error {
 	for {
 		e := w.NextEvent()
 		switch e := e.(type) {
-		case system.DestroyEvent:
+		case app.DestroyEvent:
 			return e.Err
-		case system.FrameEvent:
-			gtx := layout.NewContext(&ops, e)
+		case app.FrameEvent:
+			gtx := app.NewContext(&ops, e)
 			paint.Fill(gtx.Ops, backgroundColor)
 			ui.Layout(gtx)
 			e.Frame(gtx.Ops)
