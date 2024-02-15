@@ -65,16 +65,16 @@ func (ui *todoUI) Layout(gtx C) D {
 		}
 	}
 	// Process clear.
-	if ui.clear.Clicked() {
+	if ui.clear.Clicked(gtx) {
 		ui.todos.clearDone()
 	}
 	// Process filter selection.
 	switch {
-	case ui.all.Clicked():
+	case ui.all.Clicked(gtx):
 		ui.filter = filterAll
-	case ui.active.Clicked():
+	case ui.active.Clicked(gtx):
 		ui.filter = filterActive
-	case ui.completed.Clicked():
+	case ui.completed.Clicked(gtx):
 		ui.filter = filterCompleted
 	}
 
@@ -104,13 +104,13 @@ func (ui *todoUI) layoutItems(gtx C) D {
 
 	// Process other item actions.
 	for _, item := range items {
-		if doubleClicked(&item.click) {
+		if doubleClicked(&item.click, gtx) {
 			ui.startItemEdit(item)
 		}
-		if item.done.Changed() {
+		if item.done.Update(gtx) {
 			ui.todos.itemUpdated(item)
 		}
-		if item.remove.Clicked() {
+		if item.remove.Clicked(gtx) {
 			ui.todos.remove(item)
 		}
 	}
@@ -149,8 +149,8 @@ func (ui *todoUI) layoutItems(gtx C) D {
 	})
 }
 
-func doubleClicked(c *widget.Clickable) bool {
-	for _, cl := range c.Clicks() {
+func doubleClicked(c *widget.Clickable, gtx C) bool {
+	for _, cl := range c.Update(gtx) {
 		if cl.NumClicks >= 2 {
 			return true
 		}
@@ -269,32 +269,32 @@ func loop(w *app.Window, theme *todoTheme) error {
 	}
 
 	var (
-		store = todostore.NewStore(filepath.Join(datadir, "giotodo"))
-		model = newTodoModel(store)
-		ui    = newTodoUI(theme, model)
-		ops   op.Ops
+		storedir = filepath.Join(datadir, "giotodo")
+		store    = todostore.NewStore(storedir, w.Invalidate)
+		model    = newTodoModel(store)
+		ui       = newTodoUI(theme, model)
+		ops      op.Ops
 	)
 	defer store.Close()
 
 	for {
-		select {
-		case e := <-store.Events():
+		for _, e := range store.Events() {
 			model.handleStoreEvent(e)
 			w.Invalidate()
-		case e := <-w.Events():
-			switch e := e.(type) {
-			case system.StageEvent:
-				if e.Stage == system.StagePaused {
-					store.Persist()
-				}
-			case system.DestroyEvent:
-				return e.Err
-			case system.FrameEvent:
-				gtx := layout.NewContext(&ops, e)
-				paint.Fill(gtx.Ops, ui.theme.Color.MainPanel)
-				ui.Layout(gtx)
-				e.Frame(gtx.Ops)
+		}
+		e := w.NextEvent()
+		switch e := e.(type) {
+		case system.StageEvent:
+			if e.Stage == system.StagePaused {
+				store.Persist()
 			}
+		case system.DestroyEvent:
+			return e.Err
+		case system.FrameEvent:
+			gtx := layout.NewContext(&ops, e)
+			paint.Fill(gtx.Ops, ui.theme.Color.MainPanel)
+			ui.Layout(gtx)
+			e.Frame(gtx.Ops)
 		}
 	}
 }

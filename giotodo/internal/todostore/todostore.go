@@ -35,8 +35,9 @@ type Store struct {
 	reader   *json.Decoder
 	writer   *json.Encoder
 
-	eventsOut  chan Event
+	evLock     sync.Mutex
 	eventQueue list.List
+	wake       func()
 
 	eventsIn chan Event
 	flushCh  chan struct{}
@@ -44,13 +45,12 @@ type Store struct {
 	wg       sync.WaitGroup
 }
 
-func NewStore(datadir string) *Store {
+func NewStore(datadir string, wake func()) *Store {
 	s := &Store{
-		dataDir:   datadir,
-		eventsOut: make(chan Event),
-		eventsIn:  make(chan Event, 256),
-		flushCh:   make(chan struct{}, 1),
-		quitCh:    make(chan struct{}),
+		dataDir:  datadir,
+		eventsIn: make(chan Event, 256),
+		flushCh:  make(chan struct{}, 1),
+		quitCh:   make(chan struct{}),
 	}
 	s.wg.Add(1)
 	go s.mainLoop()
@@ -65,8 +65,18 @@ func (s *Store) Close() {
 
 // Events returns the event channel.
 // The app reads this channel and applies the events to the UI.
-func (s *Store) Events() <-chan Event {
-	return s.eventsOut
+func (s *Store) Events() []Event {
+	s.evLock.Lock()
+	defer s.evLock.Unlock()
+
+	if s.eventQueue.Len() == 0 {
+		return nil
+	}
+	ev := make([]Event, s.eventQueue.Len())
+	for i := range ev {
+		ev[i] = s.eventQueue.Remove(s.eventQueue.Front()).(Event)
+	}
+	return ev
 }
 
 // AddItem tells the store to add a new item.
@@ -111,11 +121,7 @@ func (s *Store) mainLoop() {
 
 	// Handle events.
 	for {
-		sendEvChan, sendEv := s.queuedOutputEvent()
 		select {
-		case sendEvChan <- sendEv:
-			s.popOutputEvent()
-
 		case ev := <-s.eventsIn:
 			if err := s.writeEvent(ev); err != nil {
 				s.enqueueOutputEvent(&IOError{Err: err})
@@ -143,19 +149,12 @@ func (s *Store) mainLoop() {
 }
 
 func (s *Store) enqueueOutputEvent(ev Event) {
+	s.evLock.Lock()
 	s.eventQueue.PushBack(ev)
-}
-
-func (s *Store) queuedOutputEvent() (chan Event, Event) {
-	first := s.eventQueue.Front()
-	if first == nil {
-		return nil, nil
+	s.evLock.Unlock()
+	if s.wake != nil {
+		s.wake()
 	}
-	return s.eventsOut, first.Value.(Event)
-}
-
-func (s *Store) popOutputEvent() {
-	s.eventQueue.Remove(s.eventQueue.Front())
 }
 
 func (s *Store) writeEvent(ev Event) error {
