@@ -147,7 +147,7 @@ func (ui *calcUI) layoutButtons(gtx C) D {
 }
 
 func (ui *calcUI) layoutButton(gtx C, b *button) D {
-	if b.clicker.Clicked() && b.action != nil {
+	if b.clicker.Clicked(gtx) && b.action != nil {
 		b.action()
 	}
 
@@ -288,7 +288,8 @@ func loop(w *app.Window) error {
 		ui  = newUI(theme)
 		ops op.Ops
 	)
-	for e := range w.Events() {
+	for {
+		e := w.NextEvent()
 		switch e := e.(type) {
 		case system.DestroyEvent:
 			return e.Err
