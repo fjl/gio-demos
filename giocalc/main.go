@@ -305,11 +305,12 @@ func main() {
 		portrait = app.PortraitOrientation.Option()
 	)
 	go func() {
-		w := app.NewWindow(statusBg, sysBg, size, title, portrait)
+		var w app.Window
+		w.Option(statusBg, sysBg, size, title, portrait)
 		// w.Option(app.MaxSize(designWidth, designHeight))
 		w.Option(app.MinSize(designWidth, designHeight))
 
-		if err := loop(w); err != nil {
+		if err := loop(&w); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
@@ -330,8 +331,7 @@ func loop(w *app.Window) error {
 		ops op.Ops
 	)
 	for {
-		e := w.NextEvent()
-		switch e := e.(type) {
+		switch e := w.Event().(type) {
 		case app.DestroyEvent:
 			return e.Err
 		case app.FrameEvent:
