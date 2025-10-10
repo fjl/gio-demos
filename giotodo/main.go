@@ -267,10 +267,10 @@ func main() {
 			minSize  = app.MinSize(theme.Size.MinWidth, unit.Dp(250))
 			statusBg = app.StatusColor(theme.Color.Background)
 			navBg    = app.NavigationColor(theme.Color.Background)
-			window   = app.NewWindow(title, size, minSize, statusBg, navBg)
 		)
-
-		if err := loop(window, theme); err != nil {
+		w := new(app.Window)
+		w.Option(title, size, minSize, statusBg, navBg)
+		if err := loop(w, theme); err != nil {
 			log.Fatal(err)
 		}
 		os.Exit(0)
@@ -299,14 +299,14 @@ func loop(w *app.Window, theme *todoTheme) error {
 			model.handleStoreEvent(e)
 			w.Invalidate()
 		}
-		e := w.NextEvent()
-		switch e := e.(type) {
-		case app.StageEvent:
-			if e.Stage == app.StagePaused {
-				store.Persist()
-			}
+		switch e := w.Event().(type) {
 		case app.DestroyEvent:
 			return e.Err
+		case app.ConfigEvent:
+			// Persist when app goes out of focus.
+			if !e.Config.Focused {
+				store.Persist()
+			}
 		case app.FrameEvent:
 			gtx := app.NewContext(&ops, e)
 			paint.Fill(gtx.Ops, ui.theme.Color.MainPanel)
